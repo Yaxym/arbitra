@@ -153,7 +153,7 @@ class ArbitrageScanner {
       
       // Пытаемся получить реальную цену DEX
       try {
-        const dexQuote = await dexConnector.getPrice(dex.venue, dex.network, symbol);
+        const dexQuote = await dexConnector.getQuote(dex.venue, dex.network, symbol);
         if (dexQuote && dexQuote.price > 0) {
           dexPrice = dexQuote.price;
         }

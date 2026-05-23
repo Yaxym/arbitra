@@ -28,7 +28,7 @@ class PairAggregator {
   // Запуск полного цикла обнаружения
   async startDiscoveryLoop(): Promise<void> {
     logger.info('Starting pair discovery loop...');
-    
+
     // 1. Первоначальное сканирование
     await this.fullScan();
 
@@ -68,7 +68,7 @@ class PairAggregator {
       const duration = (Date.now() - startTime) / 1000;
       logger.success(`✅ Full scan completed in ${duration}s`);
       logger.info(`📊 CEX: ${cexPairs.length} pairs, DEX: ${dexPairs.length} pairs`);
-      
+
       // Обновляем кэш в Redis
       await redis.set('stats:lastScan', JSON.stringify({
         timestamp: Date.now(),
@@ -86,7 +86,7 @@ class PairAggregator {
   private async fetchAllCexPairs(): Promise<CexPair[]> {
     const allPairs: CexPair[] = [];
     const cexIds = ['mexc', 'binance', 'bybit', 'okx', 'gate', 'kucoin', 'htx', 'bitget'];
-    
+
     for (const cexId of cexIds) {
       try {
         const pairs = await cexConnector.fetchAllPairs(cexId);
@@ -96,7 +96,7 @@ class PairAggregator {
         logger.warn(`Failed to fetch ${cexId} pairs:`, err.message);
       }
     }
-    
+
     return allPairs;
   }
 
@@ -117,27 +117,28 @@ class PairAggregator {
     const batchSize = 500;
     for (let i = 0; i < pairs.length; i += batchSize) {
       const batch = pairs.slice(i, i + batchSize);
-      
+
       for (const pair of batch) {
         try {
           const isDex = venueType === 'dex';
           const dexPair = pair as DexPair;
           const cexPair = pair as CexPair;
-          
+
           await postgres.query(`
             INSERT INTO pairs (
               symbol, base, quote, venue, venue_type, network,
               pool_address, base_address, quote_address,
               base_decimals, quote_decimals,
-              liquidity_usd, volume_24h_usd, fee_percent,
+              liquidity_usd, volume_24h_usd, fee_percent, last_price,
               active, deposit_enabled, withdraw_enabled,
               discovered_at, last_seen_at
             ) VALUES (
-              $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, NOW(), NOW()
+              $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, NOW(), NOW()
             )
             ON CONFLICT (symbol, venue) DO UPDATE SET
               liquidity_usd = EXCLUDED.liquidity_usd,
               volume_24h_usd = EXCLUDED.volume_24h_usd,
+              last_price = EXCLUDED.last_price,
               last_seen_at = NOW(),
               active = TRUE
           `, [
@@ -155,6 +156,7 @@ class PairAggregator {
             dexPair.liquidity || 0,
             dexPair.volume24h || 0,
             dexPair.fees || 0.003,
+            dexPair.last_price || 0,
             true,
             'depositEnabled' in cexPair ? cexPair.depositEnabled ?? true : true,
             'withdrawEnabled' in cexPair ? cexPair.withdrawEnabled ?? true : true,
@@ -178,7 +180,7 @@ class PairAggregator {
           WHERE discovered_at > NOW() - INTERVAL '5 minutes'
             AND is_new_listing = FALSE
         `);
-        
+
         for (const row of result.rows) {
           const listing: NewListing = {
             exchange: row.venue,
@@ -188,22 +190,22 @@ class PairAggregator {
             listingTime: new Date(row.discovered_at).getTime(),
             networks: [],
           };
-          
+
           // Помечаем как новый листинг
           await postgres.query(`
             UPDATE pairs SET is_new_listing = TRUE
             WHERE symbol = $1 AND venue = $2
           `, [row.symbol, row.venue]);
-          
+
           // Сохраняем в таблицу new_listings
           await postgres.query(`
             INSERT INTO new_listings (symbol, base, quote, venue)
             VALUES ($1, $2, $3, $4)
           `, [row.symbol, row.base, row.quote, row.venue]);
-          
+
           // Уведомляем слушателей
           this.newListingListeners.forEach(cb => cb(listing));
-          
+
           logger.info(`🆕 New listing detected: ${row.symbol} on ${row.venue}`);
         }
       } catch (err: any) {
@@ -231,7 +233,7 @@ class PairAggregator {
         AND quote IS NOT NULL
     `;
     const params: any[] = [filters.minLiquidity || 50];
-    
+
     // Если нужны только новые листинги
     if (filters.onlyNewListings) {
       query += ` AND is_new_listing = TRUE`;
@@ -239,7 +241,7 @@ class PairAggregator {
 
     // Исключаем черный список
     query += ` AND symbol NOT IN (SELECT symbol FROM blacklist)`;
-    
+
     query += ` ORDER BY liquidity_usd DESC LIMIT 15000`;
 
     const result = await postgres.query(query, params);
@@ -249,12 +251,12 @@ class PairAggregator {
   // Сгруппировать пары по символу
   async getGroupedPairs(): Promise<Map<string, any[]>> {
     const result = await postgres.query(`
-      SELECT * FROM pairs 
-      WHERE active = TRUE 
+      SELECT * FROM pairs
+      WHERE active = TRUE
         AND liquidity_usd > 1000
       ORDER BY liquidity_usd DESC
     `);
-    
+
     const grouped = new Map<string, any[]>();
     for (const row of result.rows) {
       const key = row.base.toUpperCase();
@@ -263,7 +265,7 @@ class PairAggregator {
       }
       grouped.get(key)!.push(row);
     }
-    
+
     return grouped;
   }
 }

@@ -227,22 +227,20 @@ class PairAggregator {
       SELECT * FROM pairs
       WHERE active = TRUE
         AND liquidity_usd >= $1
-        AND symbol NOT IN (SELECT symbol FROM blacklist)
+        AND base IS NOT NULL
+        AND quote IS NOT NULL
     `;
-    const params: any[] = [filters.minLiquidity || 1000];
-    let paramIdx = 2;
-
-    if (filters.networks && filters.networks.length > 0) {
-      query += ` AND network = ANY($${paramIdx})`;
-      params.push(filters.networks);
-      paramIdx++;
-    }
-
+    const params: any[] = [filters.minLiquidity || 50];
+    
+    // Если нужны только новые листинги
     if (filters.onlyNewListings) {
       query += ` AND is_new_listing = TRUE`;
     }
 
-    query += ` ORDER BY liquidity_usd DESC LIMIT 10000`;
+    // Исключаем черный список
+    query += ` AND symbol NOT IN (SELECT symbol FROM blacklist)`;
+    
+    query += ` ORDER BY liquidity_usd DESC LIMIT 15000`;
 
     const result = await postgres.query(query, params);
     return result.rows;

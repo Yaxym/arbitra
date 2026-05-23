@@ -6,7 +6,7 @@ import { logger } from '../utils/logger';
 import { DatabaseError } from '../utils/errors';
 
 class PostgresClient {
-  private pool: Pool;
+  public pool: Pool;
   private connected: boolean = false;
   
   constructor() {
@@ -38,6 +38,47 @@ class PostgresClient {
   }
   
   async init(): Promise<void> {
+    // Создаем таблицу пар если не существует
+    await this.query(`
+      CREATE TABLE IF NOT EXISTS pairs (
+        id SERIAL PRIMARY KEY,
+        symbol VARCHAR(50) NOT NULL,
+        base VARCHAR(16) NOT NULL,
+        quote VARCHAR(16) NOT NULL,
+        venue VARCHAR(32) NOT NULL,
+        venue_type VARCHAR(8) NOT NULL,
+        network VARCHAR(16),
+        pool_address VARCHAR(128),
+        base_address VARCHAR(128),
+        quote_address VARCHAR(128),
+        base_decimals NUMERIC(10,4),
+        quote_decimals NUMERIC(10,4),
+        liquidity_usd NUMERIC(20,4),
+        volume_24h_usd NUMERIC(20,4),
+        fee_percent NUMERIC(8,4),
+        active BOOLEAN DEFAULT TRUE,
+        deposit_enabled BOOLEAN DEFAULT TRUE,
+        withdraw_enabled BOOLEAN DEFAULT TRUE,
+        discovered_at TIMESTAMP DEFAULT NOW(),
+        last_seen_at TIMESTAMP DEFAULT NOW(),
+        is_new_listing BOOLEAN DEFAULT FALSE,
+        UNIQUE(symbol, venue)
+      )
+    `);
+
+    // Таблица новых листингов
+    await this.query(`
+      CREATE TABLE IF NOT EXISTS new_listings (
+        id SERIAL PRIMARY KEY,
+        symbol VARCHAR(32) NOT NULL,
+        base VARCHAR(16) NOT NULL,
+        quote VARCHAR(16) NOT NULL,
+        venue VARCHAR(32) NOT NULL,
+        detected_at TIMESTAMP DEFAULT NOW(),
+        UNIQUE(symbol, venue)
+      )
+    `);
+    
     // Создаем таблицы если не существуют
     await this.query(`
       CREATE TABLE IF NOT EXISTS opportunities (
@@ -90,6 +131,11 @@ class PostgresClient {
     
     // Индексы для ускорения поиска
     await this.query(`
+      CREATE INDEX IF NOT EXISTS idx_pairs_symbol ON pairs(symbol);
+      CREATE INDEX IF NOT EXISTS idx_pairs_base ON pairs(base);
+      CREATE INDEX IF NOT EXISTS idx_pairs_venue ON pairs(venue);
+      CREATE INDEX IF NOT EXISTS idx_pairs_network ON pairs(network);
+      CREATE INDEX IF NOT EXISTS idx_pairs_active ON pairs(active) WHERE active = TRUE;
       CREATE INDEX IF NOT EXISTS idx_opportunities_pair ON opportunities(pair_symbol);
       CREATE INDEX IF NOT EXISTS idx_opportunities_cex ON opportunities(cex_id);
       CREATE INDEX IF NOT EXISTS idx_opportunities_dex ON opportunities(dex_id);

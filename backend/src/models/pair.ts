@@ -45,6 +45,7 @@ export interface DexPair {
   liquidity: number;
   volume24h: number;
   fees: number;
+  last_price: number;  // Цена токена в USD
 }
 
 export interface UnifiedPair {

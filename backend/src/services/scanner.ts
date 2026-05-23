@@ -165,13 +165,17 @@ class ArbitrageScanner {
       
       if (cexMid <= 0 || dexPrice <= 0) return null;
 
-      // Определяем направление
+      // Определяем направление арбитража
+      // Если цена DEX выше CEX -> Покупаем на CEX, Продаем на DEX
       const rawSpread = (dexPrice - cexMid) / cexMid;
       const direction = rawSpread > 0 ? 'CEX→DEX' : 'DEX→CEX';
 
       // Рассчитываем эффективные цены
-      const buyBook = direction === 'CEX→DEX' ? cexBook : this.createDexBook(dexPrice, dexLiquidity);
-      const sellBook = direction === 'CEX→DEX' ? this.createDexBook(dexPrice, dexLiquidity) : cexBook;
+      // Для DEX создаем синтетический стакан на основе известной цены и ликвидности
+      const dexBookSynthetic = this.createDexBook(dexPrice, dexLiquidity);
+      
+      const buyBook = direction === 'CEX→DEX' ? cexBook : dexBookSynthetic;
+      const sellBook = direction === 'CEX→DEX' ? dexBookSynthetic : cexBook;
 
       const buyEff = this.calculateEffectivePrice(buyBook.bids, 'buy', 100);
       const sellEff = this.calculateEffectivePrice(sellBook.asks, 'sell', 100);
@@ -216,8 +220,8 @@ class ArbitrageScanner {
         direction,
         buyEff,
         sellEff,
-        cexBook: direction === 'CEX→DEX' ? cexBook : this.createDexBook(dexPrice, dexLiquidity),
-        dexBook: direction === 'CEX→DEX' ? this.createDexBook(dexPrice, dexLiquidity) : cexBook,
+        cexBook: direction === 'CEX→DEX' ? cexBook : dexBookSynthetic,
+        dexBook: direction === 'CEX→DEX' ? dexBookSynthetic : cexBook,
         grossSpread,
         netSpread,
         volume24h: dexVolume,
@@ -233,20 +237,34 @@ class ArbitrageScanner {
         },
       };
     } catch (err: any) {
+      logger.warn(`Error checking arbitrage for ${symbol}:`, err.message);
       return null;
     }
   }
 
-  // Создать фейковый стакан для DEX если нет реального API (временное решение)
+  // Создать синтетический стакан для DEX на основе цены и ликвидности
   private createDexBook(price: number, liquidity: number): OrderBook {
     const bids = [], asks = [];
     let bidTotal = 0, askTotal = 0;
+    
+    // Создаем 10 уровней глубины
+    // Размер ордера зависит от ликвидности (берем 1% от ликвидности на уровень)
+    const baseSize = (liquidity * 0.01) / price; 
+
     for (let i = 0; i < 10; i++) {
-      const size = (liquidity / price) * 0.1 * (1 - i * 0.05);
-      bidTotal += price * (1 - 0.002 * i) * size;
-      askTotal += price * (1 + 0.002 * i) * size;
-      bids.push({ price: price * (1 - 0.002 * i), size, total: bidTotal });
-      asks.push({ price: price * (1 + 0.002 * i), size, total: askTotal });
+      const priceOffset = 0.002 * i; // 0.2% шаг
+      const size = baseSize * (1 - i * 0.05); // Уменьшаем размер к краям
+      
+      if (size <= 0) break;
+
+      const bidPrice = price * (1 - priceOffset);
+      const askPrice = price * (1 + priceOffset);
+      
+      bidTotal += bidPrice * size;
+      askTotal += askPrice * size;
+      
+      bids.push({ price: bidPrice, size, total: bidTotal });
+      asks.push({ price: askPrice, size, total: askTotal });
     }
     return { bids, asks, timestamp: Date.now() };
   }

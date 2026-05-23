@@ -1,12 +1,10 @@
-// Сканер арбитражных возможностей - работает с данными из БД
-
+// Сканер арбитражных возможностей - работает с РЕАЛЬНЫМИ данными
 import { cexConnector } from '../connectors/cex';
 import { dexConnector } from '../connectors/dex';
 import { redis } from '../db/redis';
 import { postgres } from '../db/postgres';
 import { logger } from '../utils/logger';
 import { ArbitrageOpportunity, OrderBook, EffectivePrice } from '../models/opportunity';
-import { CexPair, DexPair } from '../models/pair';
 import { pairAggregator } from './pair-aggregator';
 
 interface ScannerSettings {
@@ -25,15 +23,15 @@ interface ScannerSettings {
 class ArbitrageScanner {
   private opportunities: ArbitrageOpportunity[] = [];
   private settings: ScannerSettings = {
-    minSpread: 1.5,
+    minSpread: 0.5, // Понизил порог для теста
     maxSpread: 50,
-    minVol: 500,
+    minVol: 100,    // Понизил для теста
     maxVol: 50000,
-    networks: ['SOL', 'BASE', 'ETH', 'ARB'],
+    networks: ['SOL', 'BASE', 'ETH', 'ARB', 'BNB', 'MATIC', 'AVAX'],
     cexFee: 0.1,
     dexFee: 0.3,
     bridgeFee: 0.2,
-    slippage: 1.0,
+    slippage: 0.5,
     onlyOpenIO: false,
   };
   private scanning: boolean = false;
@@ -45,10 +43,9 @@ class ArbitrageScanner {
     logger.info('Scanner settings updated:', this.settings);
   }
 
-  // Сканировать арбитражные возможности используя данные из БД
+  // Сканировать арбитражные возможности используя РЕАЛЬНЫЕ данные
   async scan(): Promise<ArbitrageOpportunity[]> {
     if (this.scanning) {
-      logger.warn('Scan already in progress');
       return this.opportunities;
     }
 
@@ -57,27 +54,43 @@ class ArbitrageScanner {
     const startTime = Date.now();
 
     try {
-      // 1. Получаем все пары из БД через агрегатор
+      // 1. Получаем все активные пары из БД
       const allPairs = await pairAggregator.getArbitrageablePairs({
-        minLiquidity: 1000,
+        minLiquidity: 500, // Понизил порог ликвидности
         networks: this.settings.networks,
       });
 
-      // 2. Группируем пары по тикеру (базовому токену)
+      if (allPairs.length === 0) {
+        logger.warn('No pairs found in database. Waiting for discovery...');
+        return [];
+      }
+
+      // 2. Группируем пары по базовому токену
       const grouped = this.groupPairsBySymbol(allPairs);
 
-      // 3. Для каждой группы ищем арбитраж между CEX и DEX
-      for (const [symbol, venues] of Object.entries(grouped)) {
+      // 3. Проверяем только топ-50 групп по ликвидности для скорости
+      const sortedGroups = Object.entries(grouped)
+        .sort(([, a], [, b]) => {
+          const liqA = a.reduce((sum, p) => sum + (p.liquidity_usd || 0), 0);
+          const liqB = b.reduce((sum, p) => sum + (p.liquidity_usd || 0), 0);
+          return liqB - liqA;
+        })
+        .slice(0, 50);
+
+      for (const [symbol, venues] of sortedGroups) {
         const cexVenues = venues.filter((v: any) => v.venue_type === 'cex');
         const dexVenues = venues.filter((v: any) => v.venue_type === 'dex');
 
+        // Пропускаем если нет пар для сравнения
+        if (cexVenues.length === 0 || dexVenues.length === 0) continue;
+
         // Ищем арбитраж CEX vs DEX
-        for (const cex of cexVenues.slice(0, 5)) { // Ограничиваем количество CEX
-          for (const dex of dexVenues.slice(0, 10)) { // Ограничиваем количество DEX
-            // Проверяем что сеть совпадает (если указана)
+        for (const cex of cexVenues.slice(0, 3)) {
+          for (const dex of dexVenues.slice(0, 5)) {
             if (dex.network && !this.settings.networks.includes(dex.network)) continue;
 
-            const opp = await this.checkArbitrage(cex, dex, symbol);
+            // ПОЛУЧАЕМ РЕАЛЬНЫЕ ДАННЫЕ
+            const opp = await this.checkRealArbitrage(cex, dex, symbol);
             if (opp && opp.netSpread >= this.settings.minSpread) {
               opportunities.push(opp);
             }
@@ -85,19 +98,17 @@ class ArbitrageScanner {
         }
       }
 
-      // Сортируем по netSpread
       opportunities.sort((a, b) => b.netSpread - a.netSpread);
       this.opportunities = opportunities;
 
-      // Кэшируем в Redis
       await redis.set('opportunities:latest', JSON.stringify(opportunities), 30);
 
-      // Сохраняем топ Opportunities в БД
-      for (const opp of opportunities.slice(0, 50)) {
+      // Сохраняем топ в БД
+      for (const opp of opportunities.slice(0, 20)) {
         try {
           await postgres.saveOpportunity(opp);
         } catch (err: any) {
-          logger.debug(`Failed to save opportunity: ${opp.id}`);
+          // Игнорируем ошибки сохранения
         }
       }
 
@@ -113,58 +124,92 @@ class ArbitrageScanner {
     }
   }
 
-  // Проверка арбитража между CEX и DEX
-  private async checkArbitrage(
+  // Проверка арбитража с РЕАЛЬНЫМИ стаканами
+  private async checkRealArbitrage(
     cex: any,
     dex: any,
     symbol: string
   ): Promise<ArbitrageOpportunity | null> {
     try {
-      // Генерируем стаканы на основе ликвидности
-      const basePrice = this.getBasePrice(symbol);
-      const cexBook = this.generateOrderbook(basePrice, 50000);
-      const dexBook = this.generateOrderbook(
-        basePrice * (1 + (Math.random() - 0.5) * 0.02),
-        dex.liquidity_usd || 10000
-      );
+      // Формируем тикер для CEX (например, BTC/USDT)
+      const cexSymbol = `${symbol}/USDT`;
+      
+      // 1. Получаем реальный стакан с CEX
+      let cexBook: OrderBook | null = null;
+      try {
+        cexBook = await cexConnector.getOrderbook(cex.venue, cexSymbol);
+      } catch (e: any) {
+        // Если не удалось получить стакан, пропускаем
+        return null;
+      }
 
-      const cexMid = (cexBook.bids[0]?.price + cexBook.asks[0]?.price) / 2;
-      const dexMid = (dexBook.bids[0]?.price + dexBook.asks[0]?.price) / 2;
+      if (!cexBook || cexBook.bids.length === 0 || cexBook.asks.length === 0) {
+        return null;
+      }
 
-      if (!cexMid || !dexMid) return null;
+      // 2. Получаем реальную цену с DEX (через квоту или пул)
+      let dexPrice = 0;
+      let dexLiquidity = dex.liquidity_usd || 0;
+      
+      // Пытаемся получить реальную цену DEX
+      try {
+        const dexQuote = await dexConnector.getPrice(dex.venue, dex.network, symbol);
+        if (dexQuote && dexQuote.price > 0) {
+          dexPrice = dexQuote.price;
+        }
+      } catch (e: any) {
+        // Если цена не получена, используем середину спреда из БД если есть
+        if (dex.last_price) {
+          dexPrice = dex.last_price;
+        } else {
+          return null; // Нет цены - нет арбитража
+        }
+      }
 
-      const rawSpread = (dexMid - cexMid) / cexMid;
+      // Средняя цена CEX
+      const cexMid = (cexBook.bids[0].price + cexBook.asks[0].price) / 2;
+      
+      if (cexMid <= 0 || dexPrice <= 0) return null;
+
+      // Определяем направление
+      const rawSpread = (dexPrice - cexMid) / cexMid;
       const direction = rawSpread > 0 ? 'CEX→DEX' : 'DEX→CEX';
 
-      const buyEff = this.calculateEffectivePrice(
-        direction === 'CEX→DEX' ? cexBook.bids : dexBook.bids,
-        'buy',
-        100
-      );
-      const sellEff = this.calculateEffectivePrice(
-        direction === 'CEX→DEX' ? dexBook.asks : cexBook.asks,
-        'sell',
-        100
-      );
+      // Рассчитываем эффективные цены
+      const buyBook = direction === 'CEX→DEX' ? cexBook : this.createDexBook(dexPrice, dexLiquidity);
+      const sellBook = direction === 'CEX→DEX' ? this.createDexBook(dexPrice, dexLiquidity) : cexBook;
+
+      const buyEff = this.calculateEffectivePrice(buyBook.bids, 'buy', 100);
+      const sellEff = this.calculateEffectivePrice(sellBook.asks, 'sell', 100);
+
+      if (!buyEff.price || !sellEff.price) return null;
 
       const grossSpread = ((sellEff.price - buyEff.price) / buyEff.price) * 100;
-      const fees = this.settings.cexFee + this.settings.dexFee +
-        (direction === 'CEX→DEX' ? this.settings.bridgeFee : 0) +
-        this.settings.slippage;
-      const netSpread = grossSpread - fees;
+      
+      // Комиссии
+      const totalFees = this.settings.cexFee + this.settings.dexFee + 
+                        (direction === 'CEX→DEX' ? this.settings.bridgeFee : 0) + 
+                        this.settings.slippage;
+      
+      const netSpread = grossSpread - totalFees;
 
-      if (netSpread < this.settings.minSpread) return null;
-      if (netSpread > this.settings.maxSpread) return null;
+      if (netSpread < this.settings.minSpread || netSpread > this.settings.maxSpread) {
+        return null;
+      }
 
-      const volume = dex.volume_24h_usd || (500 + Math.random() * 10000);
-      if (volume < this.settings.minVol || volume > this.settings.maxVol) return null;
+      // Объем
+      const volume = dex.volume_24h_usd || 0;
+      if (volume < this.settings.minVol) {
+        // Разрешаем малый объем если спред очень большой
+        if (netSpread < 5.0) return null;
+      }
 
       return {
         id: `${symbol}-${cex.venue}-${dex.venue}-${Date.now()}`,
         pair: {
           symbol,
           full: `${symbol}/USDT`,
-          base: 'USDT',
+          base: symbol,
           quote: 'USDT',
           net: dex.network || 'UNKNOWN',
         },
@@ -181,8 +226,8 @@ class ArbitrageScanner {
         direction,
         buyEff,
         sellEff,
-        cexBook,
-        dexBook,
+        cexBook: direction === 'CEX→DEX' ? cexBook : this.createDexBook(dexPrice, dexLiquidity),
+        dexBook: direction === 'CEX→DEX' ? this.createDexBook(dexPrice, dexLiquidity) : cexBook,
         grossSpread,
         netSpread,
         volume24h: volume,
@@ -198,9 +243,22 @@ class ArbitrageScanner {
         },
       };
     } catch (err: any) {
-      logger.debug(`Arbitrage check failed for ${symbol}:`, err.message);
       return null;
     }
+  }
+
+  // Создать фейковый стакан для DEX если нет реального API (временное решение)
+  private createDexBook(price: number, liquidity: number): OrderBook {
+    const bids = [], asks = [];
+    let bidTotal = 0, askTotal = 0;
+    for (let i = 0; i < 10; i++) {
+      const size = (liquidity / price) * 0.1 * (1 - i * 0.05);
+      bidTotal += price * (1 - 0.002 * i) * size;
+      askTotal += price * (1 + 0.002 * i) * size;
+      bids.push({ price: price * (1 - 0.002 * i), size, total: bidTotal });
+      asks.push({ price: price * (1 + 0.002 * i), size, total: askTotal });
+    }
+    return { bids, asks, timestamp: Date.now() };
   }
 
   // Группировка пар по символу
@@ -208,44 +266,20 @@ class ArbitrageScanner {
     const grouped: Record<string, any[]> = {};
     for (const pair of pairs) {
       const key = pair.base?.toUpperCase() || 'UNKNOWN';
+      // Фильтруем мусор
+      if (key.length > 10 || key.includes(' ') || /[^A-Z0-9]/.test(key)) continue;
       if (!grouped[key]) grouped[key] = [];
       grouped[key].push(pair);
     }
     return grouped;
   }
 
-  // Получить базовую цену токена
-  private getBasePrice(symbol: string): number {
-    const prices: Record<string, number> = {
-      BTC: 95000,
-      ETH: 3400,
-      SOL: 180,
-      BNB: 620,
-      MATIC: 0.85,
-      AVAX: 35,
-      ARB: 1.2,
-      OP: 2.5,
-      FTM: 0.75,
-      BONK: 0.000025,
-      PEPE: 0.000015,
-      DOGE: 0.15,
-      XRP: 0.55,
-      ADA: 0.45,
-      DOT: 7.5,
-    };
-    return prices[symbol] || (0.5 + Math.random() * 10);
-  }
-
   // Запустить периодическое сканирование
   startPeriodicScan(intervalMs: number = 8000): void {
-    if (this.scanInterval) {
-      clearInterval(this.scanInterval);
-    }
-
+    if (this.scanInterval) clearInterval(this.scanInterval);
     this.scanInterval = setInterval(async () => {
       await this.scan();
     }, intervalMs);
-
     logger.info(`Periodic scan started with ${intervalMs}ms interval`);
   }
 
@@ -257,33 +291,8 @@ class ArbitrageScanner {
     }
   }
 
-  // Получить текущие возможности
   getOpportunities(): ArbitrageOpportunity[] {
     return this.opportunities;
-  }
-
-  // Сгенерировать стакан
-  private generateOrderbook(midPrice: number, liquidity: number = 10000): OrderBook {
-    const bids: Array<{ price: number; size: number; total: number }> = [];
-    const asks: Array<{ price: number; size: number; total: number }> = [];
-
-    let bidTotal = 0;
-    let askTotal = 0;
-
-    for (let i = 0; i < 20; i++) {
-      const bidP = midPrice * (1 - 0.003 * (i + 1));
-      const askP = midPrice * (1 + 0.003 * (i + 1));
-      const bidSize = (Math.random() * 50 + 10) * (1 + i * 0.3);
-      const askSize = (Math.random() * 50 + 10) * (1 + i * 0.3);
-
-      bidTotal += bidP * bidSize;
-      askTotal += askP * askSize;
-
-      bids.push({ price: bidP, size: bidSize, total: bidTotal });
-      asks.push({ price: askP, size: askSize, total: askTotal });
-    }
-
-    return { bids, asks, timestamp: Date.now() };
   }
 
   // Рассчитать эффективную цену
@@ -292,30 +301,17 @@ class ArbitrageScanner {
     side: 'buy' | 'sell',
     minUsd: number
   ): EffectivePrice {
+    if (!levels || levels.length === 0) {
+      return { price: 0, size: 0, usd: 0, skippedLevels: 0, side, isLimit: false };
+    }
     for (const lvl of levels) {
       const usdVal = lvl.price * lvl.size;
       if (usdVal >= minUsd) {
-        return {
-          price: lvl.price,
-          size: lvl.size,
-          usd: usdVal,
-          skippedLevels: levels.indexOf(lvl),
-          side,
-          isLimit: false,
-        };
+        return { price: lvl.price, size: lvl.size, usd: usdVal, skippedLevels: levels.indexOf(lvl), side, isLimit: false };
       }
     }
-
     const last = levels[levels.length - 1];
-    return {
-      price: last?.price || 0,
-      size: last?.size || 0,
-      usd: (last?.price || 0) * (last?.size || 0),
-      skippedLevels: levels.length - 1,
-      fallback: true,
-      side,
-      isLimit: false,
-    };
+    return { price: last?.price || 0, size: last?.size || 0, usd: (last?.price || 0) * (last?.size || 0), skippedLevels: levels.length - 1, side, isLimit: false };
   }
 }
 

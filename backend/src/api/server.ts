@@ -10,6 +10,7 @@ import { logger } from '../utils/logger';
 import { scanner } from '../services/scanner';
 import { cexConnector } from '../connectors/cex';
 import { dexConnector } from '../connectors/dex';
+import { pairAggregator } from '../services/pair-aggregator';
 
 class ApiServer {
   private app: express.Application;
@@ -50,6 +51,7 @@ class ApiServer {
     // Получить арбитражные возможности
     this.app.get('/api/opportunities', async (req, res) => {
       try {
+        // Сначала пытаемся получить свежие данные сканированием
         const opps = scanner.getOpportunities();
         
         // Применяем фильтры из query params
@@ -61,10 +63,10 @@ class ApiServer {
         let filtered = opps.filter(o => o.netSpread >= minSpread);
         
         if (minVol > 0) {
-          filtered = filtered.filter(o => o.volume24h >= minVol);
+          filtered = filtered.filter(o => o.volume24h >= minVol * 1000); // конвертируем K в полные числа
         }
         if (maxVol < Infinity) {
-          filtered = filtered.filter(o => o.volume24h <= maxVol);
+          filtered = filtered.filter(o => o.volume24h <= maxVol * 1000);
         }
         if (networks.length > 0) {
           filtered = filtered.filter(o => networks.includes(o.pair.net));
@@ -123,6 +125,19 @@ class ApiServer {
       try {
         const opps = await scanner.scan();
         res.json({ success: true, count: opps.length, opportunities: opps });
+      } catch (err: any) {
+        res.status(500).json({ error: err.message });
+      }
+    });
+
+    // Получить статистику пар
+    this.app.get('/api/stats', async (req, res) => {
+      try {
+        const grouped = await pairAggregator.getGroupedPairs();
+        res.json({
+          totalSymbols: grouped.size,
+          totalPairs: Array.from(grouped.values()).reduce((sum, arr) => sum + arr.length, 0),
+        });
       } catch (err: any) {
         res.status(500).json({ error: err.message });
       }

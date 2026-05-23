@@ -1046,58 +1046,75 @@ let history = [];
 let sortField = 'spread';
 let sortDir = 'desc';
 
-function generateOpportunities(){
-  const opps = [];
-  for(const p of PAIRS_POOL){
-    if(settings.blacklist.has(p.sym.toUpperCase())) continue;
-    const numCombos = 2 + Math.floor(Math.random()*3);
-    const usedCex = new Set();
-    for(let i=0;i<numCombos;i++){
-      let cex = pickCex();
-      let tries=0;
-      while(usedCex.has(cex.id) && tries<6){cex=pickCex();tries++}
-      usedCex.add(cex.id);
-      const dex = pickDex(p.net);
-      const cexMid = p.cexPrice * (1 + (Math.random()-0.5)*0.008);
-      const dexMid = p.dexPrice * (1 + (Math.random()-0.5)*0.012);
-      const cexBook = genOrderbook(cexMid);
-      const dexBook = genOrderbook(dexMid, 8, 0.004);
-      const rawSpread = (dexMid - cexMid)/cexMid;
-      let direction, buyEff, sellEff;
-      if(rawSpread > 0){
-        direction = 'CEX→DEX';
-        buyEff = effectivePrice(cexBook, 'buy', settings.minOrderUsd, true);
-        sellEff = effectivePrice(dexBook, 'sell', settings.minOrderUsd, false);
-      } else {
-        direction = 'DEX→CEX';
-        buyEff = effectivePrice(dexBook, 'buy', settings.minOrderUsd, false);
-        sellEff = effectivePrice(cexBook, 'sell', settings.minOrderUsd, true);
-      }
-      const grossSpread = ((sellEff.price - buyEff.price)/buyEff.price)*100;
-      const fees = settings.cexFee + settings.dexFee + (direction==='CEX→DEX'?settings.bridgeFee:0) + settings.maxSlippage;
-      const netSpread = grossSpread - fees;
-      const vol = (500 + Math.random()*80000) * (p.sym==='SOL'?5:1);
-      const depositOpen = Math.random() > 0.15;
-      const withdrawOpen = Math.random() > 0.20;
-      opps.push({
-        id: `${p.sym}-${cex.id}-${dex.id}-${Date.now()}-${Math.random()}`,
-        pair: p, cex, dex, direction, buyEff, sellEff,
-        cexBook, dexBook, grossSpread, netSpread,
-        volume24h: vol,
-        timestamp: Date.now() - Math.floor(Math.random()*600000),
-        depositOpen, withdrawOpen,
-      });
+// РЕАЛЬНЫЕ данные с бэкенда через WebSocket
+const API_URL = window.location.hostname === 'localhost' ? 'http://localhost:4000' : '';
+const WS_URL = window.location.hostname === 'localhost' ? 'ws://localhost:4000' : `ws://${window.location.host}`;
+let ws = null;
+
+async function generateOpportunities(){
+  try {
+    // Запрос к реальному API
+    const response = await fetch(`${API_URL}/api/opportunities?` + new URLSearchParams({
+      minSpread: settings.minSpread,
+      minVol: settings.minVol / 1000, // конвертируем в K
+      maxVol: settings.maxVol / 1000,
+      networks: NETS.filter(n => n.on).map(n => n.sym).join(','),
+    }));
+    
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
     }
+    
+    const data = await response.json();
+    opportunities = data || [];
+    applySorting();
+    return opportunities;
+  } catch (e) {
+    console.warn('API error, using cached data:', e.message);
+    // При ошибке используем последние закэшированные данные
+    return opportunities;
   }
-  const filtered = opps.filter(o =>
-    o.netSpread >= settings.minSpread &&
-    o.volume24h >= settings.minVol &&
-    o.volume24h <= settings.maxVol &&
-    (!settings.onlyOpenIO || (o.depositOpen && o.withdrawOpen))
-  );
-  opportunities = filtered;
-  applySorting();
-  return filtered;
+}
+
+// WebSocket подключение для live-обновлений
+function connectWebSocket() {
+  if (ws) {
+    ws.close();
+  }
+  
+  try {
+    ws = new WebSocket(`${WS_URL}/ws`);
+    
+    ws.onopen = () => {
+      console.log('✓ WebSocket connected');
+      toast('Connected to real-time data', '#00d4aa');
+    };
+    
+    ws.onmessage = (event) => {
+      try {
+        const msg = JSON.parse(event.data);
+        if (msg.type === 'opportunities') {
+          opportunities = msg.data || [];
+          renderScanner();
+        } else if (msg.type === 'new_listing') {
+          toast(`🆕 New listing: ${msg.data.symbol}`, '#7c5cff');
+        }
+      } catch (e) {
+        console.error('WebSocket parse error:', e);
+      }
+    };
+    
+    ws.onclose = () => {
+      console.log('WebSocket disconnected, reconnecting...');
+      setTimeout(connectWebSocket, 3000);
+    };
+    
+    ws.onerror = (err) => {
+      console.error('WebSocket error:', err);
+    };
+  } catch (e) {
+    console.warn('WebSocket connection failed:', e.message);
+  }
 }
 
 function applySorting(){
@@ -1967,6 +1984,7 @@ setInterval(()=>{
 }, 5000);
 
 // ============ INIT ============
+connectWebSocket();  // Подключаем WebSocket для real-time данных
 generateOpportunities();
 renderFilterTabs();    // build network filter tabs dynamically
 renderScanner();
@@ -1983,7 +2001,7 @@ for(let i=0;i<8;i++){
   if(opportunities[i]) addHistory(opportunities[i]);
 }
 
-toast('ARBITRA Terminal готов · 15 сетей · 15 CEX · 27 DEX','#00d4aa');
+toast('ARBITRA Terminal готов · Real-time data enabled','#00d4aa');
 </script>
 </body>
 </html>

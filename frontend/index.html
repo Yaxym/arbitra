@@ -52,23 +52,23 @@
   *{box-sizing:border-box}
   html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;overflow-x:hidden;transition:background .3s,color .3s}
   .font-display{font-family:'Space Grotesk',sans-serif;letter-spacing:-0.02em}
-  
+
   .ambient{position:fixed;inset:0;z-index:-1;overflow:hidden;
     background:radial-gradient(ellipse 60% 50% at 20% 10%, var(--ambient-1), transparent 60%),radial-gradient(ellipse 50% 40% at 80% 20%, var(--ambient-2), transparent 60%),radial-gradient(ellipse 40% 40% at 60% 90%, var(--ambient-3), transparent 60%),linear-gradient(180deg,var(--bg) 0%,var(--bg) 50%,var(--bg-2) 100%);transition:background .3s}
   .ambient::before{content:'';position:absolute;inset:0;background-image:radial-gradient(circle at 1px 1px, var(--grid-color) 1px, transparent 0);background-size:24px 24px;mask-image:radial-gradient(ellipse 80% 70% at 50% 40%, black 30%, transparent 70%)}
-  
+
   .glass{background:var(--glass-bg);backdrop-filter:blur(20px) saturate(180%);-webkit-backdrop-filter:blur(20px) saturate(180%);border:1px solid var(--border);border-radius:20px;box-shadow:inset 0 1px 0 rgba(255,255,255,0.10), 0 8px 32px rgba(0,0,0,0.12);position:relative}
   .glass::before{content:'';position:absolute;inset:0;border-radius:inherit;pointer-events:none;background:linear-gradient(135deg, rgba(255,255,255,0.12) 0%, transparent 30%, transparent 70%, rgba(255,255,255,0.06) 100%);mix-blend-mode:overlay}
   body.light .glass{box-shadow:inset 0 1px 0 rgba(255,255,255,0.6), 0 8px 24px rgba(15,23,42,0.06)}
   .glass-strong{background:var(--glass-strong-bg);backdrop-filter:blur(28px) saturate(200%);border:1px solid var(--border-hi);border-radius:22px;box-shadow:inset 0 1px 0 rgba(255,255,255,0.14), 0 12px 40px rgba(0,0,0,0.15)}
   body.light .glass-strong{box-shadow:inset 0 1px 0 rgba(255,255,255,0.8), 0 12px 32px rgba(15,23,42,0.08)}
   .glass-chip{background:var(--glass);backdrop-filter:blur(16px);border:1px solid var(--border);border-radius:14px;box-shadow:inset 0 1px 0 rgba(255,255,255,0.08)}
-  
+
   .input{background:var(--input-bg);border:1px solid var(--border);color:var(--ink);padding:10px 14px;border-radius:12px;font-size:13px;font-family:'Space Grotesk',sans-serif;width:100%;transition:all .2s;outline:none}
   .input:focus{border-color:var(--accent-2);box-shadow:0 0 0 3px rgba(124,92,255,0.18)}
   .input::placeholder{color:var(--ink-dim)}
   textarea.input{resize:vertical;min-height:80px;font-family:'Space Grotesk',sans-serif}
-  
+
   .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:10px 16px;border-radius:12px;font-size:13px;font-weight:500;font-family:'Space Grotesk',sans-serif;cursor:pointer;transition:all .2s;border:1px solid var(--border);background:var(--glass);color:var(--ink);text-decoration:none}
   .btn:hover{background:var(--glass-2);border-color:var(--border-hi)}
   .btn-primary{background:linear-gradient(135deg,#00d4aa 0%,#00a388 100%);color:#031a15;border:none;font-weight:600;box-shadow:0 4px 20px rgba(0,212,170,0.35),inset 0 1px 0 rgba(255,255,255,0.3)}
@@ -77,16 +77,16 @@
   .btn-secondary:hover{background:linear-gradient(135deg,#6b4be8 0%,#4d2ee8 100%);transform:translateY(-1px);box-shadow:0 6px 28px rgba(124,92,255,0.5);color:#fff}
   .btn-danger{background:linear-gradient(135deg,#ff4d8f 0%,#cc2e6b 100%);color:#fff;border:none;font-weight:600;box-shadow:0 4px 20px rgba(255,77,143,0.3);transition:all .2s}
   .btn-danger:hover{background:var(--btn-danger-hover);transform:translateY(-1px);box-shadow:0 6px 28px rgba(255,77,143,0.5);color:#fff}
-  
+
   ::-webkit-scrollbar{width:8px;height:8px}
   ::-webkit-scrollbar-track{background:transparent}
   ::-webkit-scrollbar-thumb{background:var(--border-hi);border-radius:4px}
-  
+
   .toggle{position:relative;width:42px;height:24px;border-radius:999px;background:rgba(128,128,128,0.25);cursor:pointer;transition:.2s;flex-shrink:0}
   .toggle::after{content:'';position:absolute;top:2px;left:2px;width:20px;height:20px;border-radius:50%;background:#fff;transition:.25s cubic-bezier(.5,.2,.3,1.4);box-shadow:0 2px 6px rgba(0,0,0,0.25)}
   .toggle.on{background:linear-gradient(135deg,#00d4aa,#00a388)}
   .toggle.on::after{left:20px}
-  
+
   .tag{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:8px;font-size:11px;font-weight:500;background:var(--glass);border:1px solid var(--border);font-family:'Space Grotesk',sans-serif;white-space:nowrap}
   .tag-mexc{background:rgba(21,183,150,0.12);border-color:rgba(21,183,150,0.3);color:#1aaf90}
   body.light .tag-mexc{color:#0e8268}
@@ -149,7 +149,7 @@
   body.light .tag-MANTLE{background:rgba(0,0,0,0.05);color:var(--ink)}
   .tag-TRX{background:rgba(235,0,27,0.12);border-color:rgba(235,0,27,0.3);color:#eb001b}
   body.light .tag-TRX{color:#b30016}
-  
+
   .tbl{width:100%;border-collapse:separate;border-spacing:0;font-size:13px}
   .tbl th{text-align:left;font-weight:500;color:var(--ink-dim);padding:12px 16px;font-size:11px;text-transform:uppercase;letter-spacing:0.08em;border-bottom:1px solid var(--border);white-space:nowrap}
   .tbl td{padding:14px 16px;border-bottom:1px solid var(--tbl-divider);white-space:nowrap}
@@ -160,7 +160,7 @@
   .tbl th.sortable:hover{color:var(--ink)}
   .sort-ind{display:inline-flex;margin-left:4px;font-size:10px;opacity:.6}
   .sort-ind.active{opacity:1;color:var(--accent)}
-  
+
   .ob-row{position:relative;height:24px;display:flex;align-items:center;font-size:12px;font-family:'Space Grotesk',sans-serif;padding:0 10px;border-radius:6px;margin-bottom:2px}
   .ob-row.bid{background:var(--ob-bid-bg);justify-content:space-between}
   .ob-row.ask{background:var(--ob-ask-bg);justify-content:space-between}
@@ -168,61 +168,61 @@
   .ob-row.bid .bar{right:0;background:var(--ob-bid-bar)}
   .ob-row.ask .bar{left:0;background:var(--ob-ask-bar)}
   .ob-row .cell{position:relative;z-index:1;min-width:60px}
-  
+
   @keyframes pulse{0%{transform:scale(1);opacity:.4}100%{transform:scale(2.2);opacity:0}}
-  
+
   .nav-item{display:flex;align-items:center;gap:12px;padding:10px 14px;border-radius:12px;color:var(--ink-dim);font-size:13px;font-weight:500;cursor:pointer;transition:.2s;font-family:'Space Grotesk',sans-serif}
   .nav-item:hover{color:var(--ink);background:var(--glass)}
   .nav-item.active{color:var(--ink);background:linear-gradient(135deg,rgba(124,92,255,0.18),rgba(0,212,170,0.08));border:1px solid rgba(124,92,255,0.25)}
   body.light .nav-item.active{background:linear-gradient(135deg,rgba(109,75,255,0.12),rgba(0,168,132,0.08));border-color:rgba(109,75,255,0.3)}
-  
+
   .profit-pos{color:#00d4aa}body.light .profit-pos{color:#00a884}
   .profit-neg{color:#ff4d8f}body.light .profit-neg{color:#e11d48}
   .profit-warn{color:#ffb547}body.light .profit-warn{color:#d97706}
-  
+
   .spread-bar{height:6px;border-radius:999px;background:var(--glass);overflow:hidden;position:relative}
   .spread-bar .fill{height:100%;background:linear-gradient(90deg,#00d4aa,#7c5cff);border-radius:999px;transition:width .4s}
-  
+
   .modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,0.5);backdrop-filter:blur(10px);z-index:100;display:none;align-items:center;justify-content:center;padding:16px}
   .modal-backdrop.open{display:flex;animation:fadeIn .25s}
   @keyframes fadeIn{from{opacity:0}to{opacity:1}}
   .modal{width:100%;max-width:1100px;max-height:90vh;overflow-y:auto}
-  
+
   .tab{padding:8px 14px;border-radius:10px;font-size:12px;font-weight:500;cursor:pointer;color:var(--ink-dim);transition:.2s;font-family:'Space Grotesk',sans-serif;white-space:nowrap}
   .tab.active{background:var(--glass-2);color:var(--ink)}
   .tab:hover:not(.active){color:var(--ink)}
-  
+
   .toast-container{position:fixed;top:16px;right:16px;z-index:200;display:flex;flex-direction:column;gap:10px;pointer-events:none;max-width:calc(100vw - 32px)}
   .toast{padding:14px 18px;border-radius:14px;font-size:13px;min-width:260px;max-width:360px;display:flex;align-items:center;gap:10px;animation:slideIn .3s cubic-bezier(.3,1.3,.5,1);pointer-events:auto}
   @keyframes slideIn{from{transform:translateX(100%);opacity:0}to{transform:translateX(0);opacity:1}}
-  
+
   .sec-label{font-size:11px;text-transform:uppercase;letter-spacing:0.12em;color:var(--ink-dim);font-weight:600;font-family:'Space Grotesk',sans-serif}
-  
+
   .view{display:none}.view.active{display:block;animation:fadeUp .35s}
   @keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
-  
+
   input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:4px;background:var(--glass-2);border-radius:999px;outline:none}
   input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;border-radius:50%;background:linear-gradient(135deg,#00d4aa,#00a388);cursor:pointer;box-shadow:0 2px 10px rgba(0,212,170,0.5)}
-  
+
   .logo-mark{width:36px;height:36px;border-radius:10px;background:conic-gradient(from 180deg at 50% 50%, #00d4aa, #7c5cff, #ff4d8f, #00d4aa);position:relative;box-shadow:0 4px 20px rgba(124,92,255,0.4);flex-shrink:0}
   .logo-mark::after{content:'';position:absolute;inset:3px;border-radius:8px;background:var(--logo-inner)}
   .logo-mark svg{position:absolute;inset:0;margin:auto;z-index:1}
-  
+
   .badge-live{display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:999px;font-size:10px;font-weight:600;letter-spacing:0.1em;background:rgba(0,212,170,0.12);color:#00d4aa;border:1px solid rgba(0,212,170,0.3)}
   body.light .badge-live{color:#00a884;border-color:rgba(0,168,132,0.35)}
   .badge-live .dot{width:6px;height:6px;border-radius:50%;background:#00d4aa;animation:pulse 1.5s infinite}
-  
+
   .kbd{padding:2px 6px;border-radius:5px;font-size:10px;background:var(--glass);border:1px solid var(--border);font-family:'Space Grotesk',monospace}
-  
+
   .route-arrow{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:500;flex-wrap:wrap}
   .route-arrow .arr{color:var(--accent-2)}
-  
+
   .metric-card{position:relative;overflow:hidden}
   .metric-card .icon-wrap{width:40px;height:40px;border-radius:12px;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,rgba(124,92,255,0.2),rgba(0,212,170,0.15));border:1px solid rgba(124,92,255,0.25)}
-  
+
   .logic-chip{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:8px;font-size:11px;font-weight:500;background:rgba(124,92,255,0.1);border:1px solid rgba(124,92,255,0.25);color:#c4b5fd;font-family:'Space Grotesk',sans-serif;white-space:nowrap}
   body.light .logic-chip{color:#6d4bff;background:rgba(109,75,255,0.08);border-color:rgba(109,75,255,0.25)}
-  
+
   .app-layout{display:flex;min-height:100vh}
   .sidebar{width:260px;flex-shrink:0;position:fixed;top:0;left:0;height:100vh;padding:20px;border-right:1px solid var(--sidebar-border);display:flex;flex-direction:column;gap:20px;overflow-y:auto;z-index:50;background:var(--bg);transition:transform .3s ease, background .3s}
   body.light .sidebar{background:linear-gradient(180deg,#fafbfe 0%,#f4f5f9 100%)}
@@ -341,7 +341,7 @@
 <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
 
 <div class="app-layout">
-  
+
   <aside class="sidebar" id="sidebar">
     <div class="flex items-center gap-3">
       <div class="logo-mark">
@@ -443,7 +443,7 @@
   </aside>
 
   <main class="main-content">
-    
+
     <div class="glass flex items-center gap-3 px-4 py-3 mb-4">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-[var(--ink-soft)]"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
       <input id="globalSearch" class="input border-0 bg-transparent p-0 focus:shadow-none" placeholder="Поиск пары, биржи, сети...   напр. SOL-USDT, MEXC, Base">
@@ -1060,17 +1060,17 @@ async function generateOpportunities(){
       maxVol: settings.maxVol / 1000,
       networks: NETS.filter(n => n.on).map(n => n.sym).join(','),
     }));
-    
+
     if (!response.ok) {
       throw new Error(`HTTP ${response.status}`);
     }
-    
+
     const data = await response.json();
     opportunities = data || [];
     applySorting();
     return opportunities;
   } catch (e) {
-    console.warn('API error, using cached data:', e.message);
+    console.warn('API error, using cached ', e.message);
     // При ошибке используем последние закэшированные данные
     return opportunities;
   }
@@ -1081,15 +1081,15 @@ function connectWebSocket() {
   if (ws) {
     ws.close();
   }
-  
+
   try {
     ws = new WebSocket(`${WS_URL}/ws`);
-    
+
     ws.onopen = () => {
       console.log('✓ WebSocket connected');
       toast('Connected to real-time data', '#00d4aa');
     };
-    
+
     ws.onmessage = (event) => {
       try {
         const msg = JSON.parse(event.data);
@@ -1103,12 +1103,12 @@ function connectWebSocket() {
         console.error('WebSocket parse error:', e);
       }
     };
-    
+
     ws.onclose = () => {
       console.log('WebSocket disconnected, reconnecting...');
       setTimeout(connectWebSocket, 3000);
     };
-    
+
     ws.onerror = (err) => {
       console.error('WebSocket error:', err);
     };
@@ -1166,8 +1166,8 @@ function renderScanner(){
 
   let list = opportunities.slice();
   if(currentFilter!=='all') list = list.filter(o=>o.pair.net===currentFilter);
-  if(search) list = list.filter(o => 
-    o.pair.sym.toLowerCase().includes(search) || 
+  if(search) list = list.filter(o =>
+    o.pair.sym.toLowerCase().includes(search) ||
     o.cex.name.toLowerCase().includes(search) ||
     o.dex.name.toLowerCase().includes(search)
   );
@@ -1320,14 +1320,14 @@ function openDetail(id){
       <div class="sec-label mb-2">Детальный расчёт цен</div>
       <div class="text-[12px] text-[var(--ink-soft)] leading-relaxed">
         <div class="mb-2">
-          <b class="profit-pos">CEX ${o.cex.name}</b> — ставим <b>лимитный ордер</b> на ${cexSide==='buy'?'покупку':'продажу'}. 
-          Исполнение произойдёт по цене <b>${fmtPrice(cexPrice)}</b> — это цена первого уровня в стакане ${cexSide==='buy'?'покупок (зелёный, bids)':'продаж (красный, asks)'}, 
-          размер ордера на котором ≥ <b>${settings.minOrderUsd} USDT</b>. 
+          <b class="profit-pos">CEX ${o.cex.name}</b> — ставим <b>лимитный ордер</b> на ${cexSide==='buy'?'покупку':'продажу'}.
+          Исполнение произойдёт по цене <b>${fmtPrice(cexPrice)}</b> — это цена первого уровня в стакане ${cexSide==='buy'?'покупок (зелёный, bids)':'продаж (красный, asks)'},
+          размер ордера на котором ≥ <b>${settings.minOrderUsd} USDT</b>.
           ${o.buyEff.isLimit && o.buyEff.skippedLevels>0 ? `Пропущено <span class="profit-warn font-bold">${o.buyEff.skippedLevels}</span> мелких ордеров.` : ''}
           ${o.sellEff.isLimit && o.sellEff.skippedLevels>0 ? `Пропущено <span class="profit-warn font-bold">${o.sellEff.skippedLevels}</span> мелких ордеров.` : ''}
         </div>
         <div>
-          <b style="color:var(--accent-2)">DEX ${o.dex.name}</b> — исполняем <b>маркет-ордер</b> на ${dexSide==='buy'?'покупку':'продажу'}. 
+          <b style="color:var(--accent-2)">DEX ${o.dex.name}</b> — исполняем <b>маркет-ордер</b> на ${dexSide==='buy'?'покупку':'продажу'}.
           Берём цену ${dexSide==='buy'?'из стакана продажи (asks) — съедаем ликвидность':'из стакана покупки (bids) — продаём в ликвидность'}.
           Цена: <b>${fmtPrice(dexPrice)}</b>.
         </div>
@@ -1366,7 +1366,7 @@ function renderOrderbookHtml(book, levels=6, venue='cex', activeSide='buy'){
   const fmtUsd = v => v>=1000 ? (v/1000).toFixed(1)+'k' : v.toFixed(0);
   const meetsMin = (lvl) => (lvl.price*lvl.size) >= settings.minOrderUsd;
   let effectivePriceLvl = null;
-  const relevantLevels = (venue==='cex' && activeSide==='buy') ? book.bids 
+  const relevantLevels = (venue==='cex' && activeSide==='buy') ? book.bids
                        : (venue==='cex' && activeSide==='sell') ? book.asks
                        : activeSide==='buy' ? book.asks : book.bids;
   for(const lvl of relevantLevels){
@@ -1421,7 +1421,7 @@ function renderOrderbookView(pairKey){
     obDexTagEl.textContent = pair.net;
     obDexTagEl.className = 'tag '+netTag;
   }
-  
+
   const buyCLimit = effectivePrice(cexBook,'buy',settings.minOrderUsd, true);
   const sellCLimit = effectivePrice(cexBook,'sell',settings.minOrderUsd, true);
   const buyDMarket = effectivePrice(dexBook,'buy',settings.minOrderUsd, false);
@@ -1463,7 +1463,7 @@ function renderRoutes(){
     const gas = o.pair.net==='SOL' ? settings.gasSol : settings.gasBase;
     const cexUrl = o.cex.url ? o.cex.url(o.pair.sym, o.pair.base) : '#';
     const dexUrl = o.dex.url ? o.dex.url(o.pair.sym, o.pair.base) : '#';
-    const steps = o.direction==='CEX→DEX' 
+    const steps = o.direction==='CEX→DEX'
       ? [
           {n:'1. Лимит BUY на CEX', d:`${o.cex.name} · ${fmtPrice(o.buyEff.price)} (bids) · ${(o.buyEff.usd).toFixed(0)} USDT`},
           {n:'2. Вывод на кошелёк', d:`Комиссия ${settings.cexWd} USDT · 1–5 мин`},
@@ -1520,7 +1520,7 @@ function addHistory(opp){
 }
 function renderHistory(){
   document.getElementById('historyBody').innerHTML = history.map(h=>{
-    const status = h.status==='executed' 
+    const status = h.status==='executed'
       ? `<span class="tag profit-pos">✓ Исполнено</span>`
       : `<span class="tag profit-warn">Истекло</span>`;
     return `
@@ -1629,11 +1629,20 @@ function renderDashboard(){
   const c = getChartColors();
   const ctx = document.getElementById('oppChart').getContext('2d');
   if(oppChart) oppChart.destroy();
+
+  // Реальные данные из истории возможностей
   const labels = Array.from({length:24},(_,i)=>`${i}:00`);
-  const data = labels.map(()=>Math.floor(8 + Math.random()*30));
+  const data = labels.map((_, i) => {
+    const hourOpps = opportunitiesHistory.filter(o => {
+      const h = new Date(o.detected_at).getHours();
+      return h === i;
+    });
+    return hourOpps.length || 0;
+  });
+
   oppChart = new Chart(ctx, {
     type:'line',
-    data:{labels, datasets:[{
+    {labels, datasets:[{
       data, borderColor:c.accent, borderWidth:2, tension:.4, fill:true,
       backgroundColor:(ctx)=>{const g=ctx.chart.ctx.createLinearGradient(0,0,0,300);g.addColorStop(0,c.accent+'4d');g.addColorStop(1,c.accent+'00');return g;},
       pointRadius:0, pointHoverRadius:5, pointHoverBackgroundColor:c.accent,
@@ -1645,13 +1654,20 @@ function renderDashboard(){
 
   const ctx2 = document.getElementById('exChart').getContext('2d');
   if(exChart) exChart.destroy();
-  const activeCex = CEX.filter(c=>c.on);
+
+  // Реальное распределение по биржам
+  const exchangeCounts = {};
+  opportunities.forEach(o => {
+    exchangeCounts[o.cex.name] = (exchangeCounts[o.cex.name] || 0) + 1;
+  });
+  const activeCex = CEX.filter(c=>c.on && exchangeCounts[c.name]);
+
   exChart = new Chart(ctx2, {
     type:'doughnut',
-    data:{
+    {
       labels:activeCex.map(c=>c.name),
-      datasets:[{data:activeCex.map(()=>Math.floor(10+Math.random()*40)), 
-        backgroundColor:activeCex.map(c=>c.color), 
+      datasets:[{activeCex.map(c=>exchangeCounts[c.name]),
+        backgroundColor:activeCex.map(c=>c.color),
         borderColor:c.doughnutBorder, borderWidth:3}]
     },
     options:{responsive:true, maintainAspectRatio:false,
@@ -1661,14 +1677,24 @@ function renderDashboard(){
 
   const ctx3 = document.getElementById('netChart').getContext('2d');
   if(netChart) netChart.destroy();
-  const activeNets = NETS.filter(n=>n.on).slice(0,6);
+
+  // Реальное распределение по сетям
+  const networkCounts = {};
+  const networkVolumes = {};
+  opportunities.forEach(o => {
+    const net = o.pair.net || 'UNKNOWN';
+    networkCounts[net] = (networkCounts[net] || 0) + 1;
+    networkVolumes[net] = (networkVolumes[net] || 0) + (o.volume24h || 0);
+  });
+  const activeNets = NETS.filter(n=>n.on && networkCounts[n.sym]).slice(0,6);
+
   netChart = new Chart(ctx3, {
     type:'bar',
-    data:{
+    {
       labels:activeNets.map(n=>n.sym),
       datasets:[
-        {label:'Возможности', data:activeNets.map(()=>Math.floor(10+Math.random()*40)), backgroundColor:c.accent2+'b3', borderRadius:6},
-        {label:'Volume ($k)', data:activeNets.map(()=>Math.floor(100+Math.random()*500)), backgroundColor:c.accent+'b3', borderRadius:6},
+        {label:'Возможности', activeNets.map(n=>networkCounts[n.sym] || 0), backgroundColor:c.accent2+'b3', borderRadius:6},
+        {label:'Volume ($k)', activeNets.map(n=>Math.round((networkVolumes[n.sym] || 0)/1000)), backgroundColor:c.accent+'b3', borderRadius:6},
       ]
     },
     options:{responsive:true, maintainAspectRatio:false,
@@ -1892,9 +1918,9 @@ document.querySelectorAll('.start-engine-btn').forEach(btn=>{
 document.getElementById('exportBtn').addEventListener('click', ()=>{
   const rows = [['Pair','Net','CEX','DEX','CEX Price','DEX Price','Spread','Volume','Age','Deposit','Withdraw']];
   opportunities.forEach(o=>rows.push([
-    o.pair.full, o.pair.net, o.cex.name, o.dex.name, 
-    o.direction==='CEX→DEX'?o.buyEff.price:o.sellEff.price, 
-    o.direction==='CEX→DEX'?o.sellEff.price:o.buyEff.price, 
+    o.pair.full, o.pair.net, o.cex.name, o.dex.name,
+    o.direction==='CEX→DEX'?o.buyEff.price:o.sellEff.price,
+    o.direction==='CEX→DEX'?o.sellEff.price:o.buyEff.price,
     o.netSpread.toFixed(2)+'%', Math.round(o.volume24h),
     fmtAge(Date.now()-o.timestamp),
     o.depositOpen?'open':'closed', o.withdrawOpen?'open':'closed'
@@ -2005,4 +2031,3 @@ toast('ARBITRA Terminal готов · Real-time data enabled','#00d4aa');
 </script>
 </body>
 </html>
-

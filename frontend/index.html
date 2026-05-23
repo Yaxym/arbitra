@@ -1,0 +1,1990 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ARBITRA — CEX/DEX Arbitrage Terminal</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/inter@5.0.0/index.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/space-grotesk@5.0.0/index.css">
+<style>
+  :root{
+    --bg:#07070c;--bg-2:#0d0d16;--ink:#e8e8f0;--ink-dim:#8b8ba7;--ink-soft:rgba(255,255,255,0.4);
+    --accent:#00d4aa;--accent-2:#7c5cff;--danger:#ff4d8f;--warn:#ffb547;
+    --glass:rgba(255,255,255,0.04);--glass-2:rgba(255,255,255,0.07);
+    --border:rgba(255,255,255,0.09);--border-hi:rgba(255,255,255,0.18);
+    --glass-bg:linear-gradient(135deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.02) 100%);
+    --glass-strong-bg:linear-gradient(135deg, rgba(255,255,255,0.09) 0%, rgba(255,255,255,0.03) 100%);
+    --input-bg:rgba(0,0,0,0.35);
+    --tbl-divider:rgba(255,255,255,0.04);
+    --sidebar-border:rgba(255,255,255,0.05);
+    --ambient-1:rgba(124,92,255,0.18);--ambient-2:rgba(0,212,170,0.14);--ambient-3:rgba(255,77,143,0.10);
+    --grid-color:rgba(255,255,255,0.04);
+    --logo-inner:linear-gradient(135deg,#0a0a14,#07070c);
+    --ob-bid-bg:linear-gradient(90deg, transparent, rgba(0,212,170,0.15));
+    --ob-ask-bg:linear-gradient(270deg, transparent, rgba(255,77,143,0.15));
+    --ob-bid-bar:linear-gradient(270deg,#00d4aa,transparent);
+    --ob-ask-bar:linear-gradient(90deg,#ff4d8f,transparent);
+    --btn-primary-hover:linear-gradient(135deg,#00b894 0%,#008b74 100%);
+    --btn-danger-hover:linear-gradient(135deg,#e6377a 0%,#a31f54 100%);
+  }
+  body.light{
+    --bg:#f4f5f9;--bg-2:#eaecef;--ink:#0f172a;--ink-dim:#64748b;--ink-soft:rgba(15,23,42,0.5);
+    --accent:#00a884;--accent-2:#6d4bff;--danger:#e11d48;--warn:#d97706;
+    --glass:rgba(255,255,255,0.55);--glass-2:rgba(255,255,255,0.75);
+    --border:rgba(15,23,42,0.08);--border-hi:rgba(15,23,42,0.18);
+    --glass-bg:linear-gradient(135deg, rgba(255,255,255,0.75) 0%, rgba(255,255,255,0.55) 100%);
+    --glass-strong-bg:linear-gradient(135deg, rgba(255,255,255,0.85) 0%, rgba(255,255,255,0.65) 100%);
+    --input-bg:rgba(255,255,255,0.7);
+    --tbl-divider:rgba(15,23,42,0.06);
+    --sidebar-border:rgba(15,23,42,0.08);
+    --ambient-1:rgba(109,75,255,0.18);--ambient-2:rgba(0,168,132,0.16);--ambient-3:rgba(225,29,72,0.10);
+    --grid-color:rgba(15,23,42,0.04);
+    --logo-inner:linear-gradient(135deg,#ffffff,#f4f5f9);
+    --ob-bid-bg:linear-gradient(90deg, transparent, rgba(0,168,132,0.18));
+    --ob-ask-bg:linear-gradient(270deg, transparent, rgba(225,29,72,0.15));
+    --ob-bid-bar:linear-gradient(270deg,#00a884,transparent);
+    --ob-ask-bar:linear-gradient(90deg,#e11d48,transparent);
+    --btn-primary-hover:linear-gradient(135deg,#009474 0%,#00705c 100%);
+    --btn-danger-hover:linear-gradient(135deg,#be123c 0%,#881337 100%);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;overflow-x:hidden;transition:background .3s,color .3s}
+  .font-display{font-family:'Space Grotesk',sans-serif;letter-spacing:-0.02em}
+  
+  .ambient{position:fixed;inset:0;z-index:-1;overflow:hidden;
+    background:radial-gradient(ellipse 60% 50% at 20% 10%, var(--ambient-1), transparent 60%),radial-gradient(ellipse 50% 40% at 80% 20%, var(--ambient-2), transparent 60%),radial-gradient(ellipse 40% 40% at 60% 90%, var(--ambient-3), transparent 60%),linear-gradient(180deg,var(--bg) 0%,var(--bg) 50%,var(--bg-2) 100%);transition:background .3s}
+  .ambient::before{content:'';position:absolute;inset:0;background-image:radial-gradient(circle at 1px 1px, var(--grid-color) 1px, transparent 0);background-size:24px 24px;mask-image:radial-gradient(ellipse 80% 70% at 50% 40%, black 30%, transparent 70%)}
+  
+  .glass{background:var(--glass-bg);backdrop-filter:blur(20px) saturate(180%);-webkit-backdrop-filter:blur(20px) saturate(180%);border:1px solid var(--border);border-radius:20px;box-shadow:inset 0 1px 0 rgba(255,255,255,0.10), 0 8px 32px rgba(0,0,0,0.12);position:relative}
+  .glass::before{content:'';position:absolute;inset:0;border-radius:inherit;pointer-events:none;background:linear-gradient(135deg, rgba(255,255,255,0.12) 0%, transparent 30%, transparent 70%, rgba(255,255,255,0.06) 100%);mix-blend-mode:overlay}
+  body.light .glass{box-shadow:inset 0 1px 0 rgba(255,255,255,0.6), 0 8px 24px rgba(15,23,42,0.06)}
+  .glass-strong{background:var(--glass-strong-bg);backdrop-filter:blur(28px) saturate(200%);border:1px solid var(--border-hi);border-radius:22px;box-shadow:inset 0 1px 0 rgba(255,255,255,0.14), 0 12px 40px rgba(0,0,0,0.15)}
+  body.light .glass-strong{box-shadow:inset 0 1px 0 rgba(255,255,255,0.8), 0 12px 32px rgba(15,23,42,0.08)}
+  .glass-chip{background:var(--glass);backdrop-filter:blur(16px);border:1px solid var(--border);border-radius:14px;box-shadow:inset 0 1px 0 rgba(255,255,255,0.08)}
+  
+  .input{background:var(--input-bg);border:1px solid var(--border);color:var(--ink);padding:10px 14px;border-radius:12px;font-size:13px;font-family:'Space Grotesk',sans-serif;width:100%;transition:all .2s;outline:none}
+  .input:focus{border-color:var(--accent-2);box-shadow:0 0 0 3px rgba(124,92,255,0.18)}
+  .input::placeholder{color:var(--ink-dim)}
+  textarea.input{resize:vertical;min-height:80px;font-family:'Space Grotesk',sans-serif}
+  
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:10px 16px;border-radius:12px;font-size:13px;font-weight:500;font-family:'Space Grotesk',sans-serif;cursor:pointer;transition:all .2s;border:1px solid var(--border);background:var(--glass);color:var(--ink);text-decoration:none}
+  .btn:hover{background:var(--glass-2);border-color:var(--border-hi)}
+  .btn-primary{background:linear-gradient(135deg,#00d4aa 0%,#00a388 100%);color:#031a15;border:none;font-weight:600;box-shadow:0 4px 20px rgba(0,212,170,0.35),inset 0 1px 0 rgba(255,255,255,0.3)}
+  .btn-primary:hover{background:var(--btn-primary-hover);transform:translateY(-1px);box-shadow:0 6px 28px rgba(0,212,170,0.5);color:#031a15}
+  .btn-secondary{background:linear-gradient(135deg,#7c5cff 0%,#5e3dff 100%);color:#fff;border:none;font-weight:600;box-shadow:0 4px 20px rgba(124,92,255,0.3),inset 0 1px 0 rgba(255,255,255,0.25)}
+  .btn-secondary:hover{background:linear-gradient(135deg,#6b4be8 0%,#4d2ee8 100%);transform:translateY(-1px);box-shadow:0 6px 28px rgba(124,92,255,0.5);color:#fff}
+  .btn-danger{background:linear-gradient(135deg,#ff4d8f 0%,#cc2e6b 100%);color:#fff;border:none;font-weight:600;box-shadow:0 4px 20px rgba(255,77,143,0.3);transition:all .2s}
+  .btn-danger:hover{background:var(--btn-danger-hover);transform:translateY(-1px);box-shadow:0 6px 28px rgba(255,77,143,0.5);color:#fff}
+  
+  ::-webkit-scrollbar{width:8px;height:8px}
+  ::-webkit-scrollbar-track{background:transparent}
+  ::-webkit-scrollbar-thumb{background:var(--border-hi);border-radius:4px}
+  
+  .toggle{position:relative;width:42px;height:24px;border-radius:999px;background:rgba(128,128,128,0.25);cursor:pointer;transition:.2s;flex-shrink:0}
+  .toggle::after{content:'';position:absolute;top:2px;left:2px;width:20px;height:20px;border-radius:50%;background:#fff;transition:.25s cubic-bezier(.5,.2,.3,1.4);box-shadow:0 2px 6px rgba(0,0,0,0.25)}
+  .toggle.on{background:linear-gradient(135deg,#00d4aa,#00a388)}
+  .toggle.on::after{left:20px}
+  
+  .tag{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:8px;font-size:11px;font-weight:500;background:var(--glass);border:1px solid var(--border);font-family:'Space Grotesk',sans-serif;white-space:nowrap}
+  .tag-mexc{background:rgba(21,183,150,0.12);border-color:rgba(21,183,150,0.3);color:#1aaf90}
+  body.light .tag-mexc{color:#0e8268}
+  .tag-binance{background:rgba(243,186,47,0.12);border-color:rgba(243,186,47,0.3);color:#c89617}
+  body.light .tag-binance{color:#9a720d}
+  .tag-bybit{background:rgba(247,165,44,0.12);border-color:rgba(247,165,44,0.3);color:#c87d12}
+  body.light .tag-bybit{color:#9a5f0b}
+  .tag-okx{background:var(--glass);border-color:var(--border-hi);color:var(--ink)}
+  .tag-gate{background:rgba(23,162,184,0.12);border-color:rgba(23,162,184,0.3);color:#168fa3}
+  body.light .tag-gate{color:#0f6a7a}
+  .tag-kucoin{background:rgba(35,175,140,0.12);border-color:rgba(35,175,140,0.3);color:#1d8c70}
+  body.light .tag-kucoin{color:#146b55}
+  .tag-htx{background:rgba(46,143,238,0.12);border-color:rgba(46,143,238,0.3);color:#2e8fee}
+  body.light .tag-htx{color:#1a5ba3}
+  .tag-bitget{background:rgba(0,208,231,0.12);border-color:rgba(0,208,231,0.3);color:#00d0e7}
+  body.light .tag-bitget{color:#0088a3}
+  .tag-kraken{background:rgba(124,92,255,0.12);border-color:rgba(124,92,255,0.3);color:#7c5cff}
+  body.light .tag-kraken{color:#5730d9}
+  .tag-coinbase{background:rgba(0,82,255,0.14);border-color:rgba(0,82,255,0.35);color:#2e6bff}
+  body.light .tag-coinbase{color:#1a4dcc}
+  .tag-bitfinex{background:rgba(77,179,77,0.12);border-color:rgba(77,179,77,0.3);color:#4db34d}
+  body.light .tag-bitfinex{color:#2d7a2d}
+  .tag-cryptodotcom{background:rgba(0,60,150,0.12);border-color:rgba(0,60,150,0.3);color:#3c6fc8}
+  body.light .tag-cryptodotcom{color:#1e3d85}
+  .tag-bingx{background:rgba(46,143,238,0.12);border-color:rgba(46,143,238,0.3);color:#2e8fee}
+  body.light .tag-bingx{color:#1a5ba3}
+  .tag-xt{background:rgba(0,168,132,0.12);border-color:rgba(0,168,132,0.3);color:#00a884}
+  body.light .tag-xt{color:#007559}
+  .tag-poloniex{background:rgba(88,91,225,0.12);border-color:rgba(88,91,225,0.3);color:#585be1}
+  body.light .tag-poloniex{color:#3a3db5}
+
+  /* Network tags */
+  .tag-ETH{background:rgba(98,126,234,0.12);border-color:rgba(98,126,234,0.3);color:#627eea}
+  body.light .tag-ETH{color:#3f57b5}
+  .tag-SOL{background:rgba(153,69,255,0.12);border-color:rgba(153,69,255,0.3);color:#9945ff}
+  body.light .tag-SOL{color:#6b2fc2}
+  .tag-BASE{background:rgba(0,82,255,0.14);border-color:rgba(0,82,255,0.35);color:#2e6bff}
+  body.light .tag-BASE{color:#1a4dcc}
+  .tag-ARB{background:rgba(40,160,240,0.12);border-color:rgba(40,160,240,0.3);color:#28a0f0}
+  body.light .tag-ARB{color:#0e6ea8}
+  .tag-OP{background:rgba(255,4,32,0.12);border-color:rgba(255,4,32,0.3);color:#ff0420}
+  body.light .tag-OP{color:#b30217}
+  .tag-MATIC{background:rgba(130,71,229,0.12);border-color:rgba(130,71,229,0.3);color:#8247e5}
+  body.light .tag-MATIC{color:#5c2bb5}
+  .tag-BNB{background:rgba(243,186,47,0.12);border-color:rgba(243,186,47,0.3);color:#c89617}
+  body.light .tag-BNB{color:#9a720d}
+  .tag-AVAX{background:rgba(232,65,66,0.12);border-color:rgba(232,65,66,0.3);color:#e84142}
+  body.light .tag-AVAX{color:#b41f20}
+  .tag-FTM{background:rgba(25,105,255,0.12);border-color:rgba(25,105,255,0.3);color:#1969ff}
+  body.light .tag-FTM{color:#0042b5}
+  .tag-CRO{background:rgba(0,40,199,0.12);border-color:rgba(0,40,199,0.3);color:#2052d4}
+  body.light .tag-CRO{color:#0028c7}
+  .tag-LINEA{background:rgba(97,62,245,0.12);border-color:rgba(97,62,245,0.3);color:#613ef5}
+  body.light .tag-LINEA{color:#3f1ec4}
+  .tag-ZKSYNC{background:rgba(78,86,225,0.12);border-color:rgba(78,86,225,0.3);color:#4e56e1}
+  body.light .tag-ZKSYNC{color:#2c33b8}
+  .tag-BLAST{background:rgba(252,252,3,0.15);border-color:rgba(200,200,0,0.3);color:#c8c803}
+  body.light .tag-BLAST{color:#8a8a00}
+  .tag-MANTLE{background:rgba(0,0,0,0.08);border-color:rgba(0,0,0,0.2);color:var(--ink)}
+  body.light .tag-MANTLE{background:rgba(0,0,0,0.05);color:var(--ink)}
+  .tag-TRX{background:rgba(235,0,27,0.12);border-color:rgba(235,0,27,0.3);color:#eb001b}
+  body.light .tag-TRX{color:#b30016}
+  
+  .tbl{width:100%;border-collapse:separate;border-spacing:0;font-size:13px}
+  .tbl th{text-align:left;font-weight:500;color:var(--ink-dim);padding:12px 16px;font-size:11px;text-transform:uppercase;letter-spacing:0.08em;border-bottom:1px solid var(--border);white-space:nowrap}
+  .tbl td{padding:14px 16px;border-bottom:1px solid var(--tbl-divider);white-space:nowrap}
+  .tbl tr:last-child td{border-bottom:none}
+  .tbl tbody tr{transition:background .15s;cursor:pointer}
+  .tbl tbody tr:hover{background:var(--glass)}
+  .tbl th.sortable{cursor:pointer;user-select:none}
+  .tbl th.sortable:hover{color:var(--ink)}
+  .sort-ind{display:inline-flex;margin-left:4px;font-size:10px;opacity:.6}
+  .sort-ind.active{opacity:1;color:var(--accent)}
+  
+  .ob-row{position:relative;height:24px;display:flex;align-items:center;font-size:12px;font-family:'Space Grotesk',sans-serif;padding:0 10px;border-radius:6px;margin-bottom:2px}
+  .ob-row.bid{background:var(--ob-bid-bg);justify-content:space-between}
+  .ob-row.ask{background:var(--ob-ask-bg);justify-content:space-between}
+  .ob-row .bar{position:absolute;top:0;bottom:0;opacity:.35}
+  .ob-row.bid .bar{right:0;background:var(--ob-bid-bar)}
+  .ob-row.ask .bar{left:0;background:var(--ob-ask-bar)}
+  .ob-row .cell{position:relative;z-index:1;min-width:60px}
+  
+  @keyframes pulse{0%{transform:scale(1);opacity:.4}100%{transform:scale(2.2);opacity:0}}
+  
+  .nav-item{display:flex;align-items:center;gap:12px;padding:10px 14px;border-radius:12px;color:var(--ink-dim);font-size:13px;font-weight:500;cursor:pointer;transition:.2s;font-family:'Space Grotesk',sans-serif}
+  .nav-item:hover{color:var(--ink);background:var(--glass)}
+  .nav-item.active{color:var(--ink);background:linear-gradient(135deg,rgba(124,92,255,0.18),rgba(0,212,170,0.08));border:1px solid rgba(124,92,255,0.25)}
+  body.light .nav-item.active{background:linear-gradient(135deg,rgba(109,75,255,0.12),rgba(0,168,132,0.08));border-color:rgba(109,75,255,0.3)}
+  
+  .profit-pos{color:#00d4aa}body.light .profit-pos{color:#00a884}
+  .profit-neg{color:#ff4d8f}body.light .profit-neg{color:#e11d48}
+  .profit-warn{color:#ffb547}body.light .profit-warn{color:#d97706}
+  
+  .spread-bar{height:6px;border-radius:999px;background:var(--glass);overflow:hidden;position:relative}
+  .spread-bar .fill{height:100%;background:linear-gradient(90deg,#00d4aa,#7c5cff);border-radius:999px;transition:width .4s}
+  
+  .modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,0.5);backdrop-filter:blur(10px);z-index:100;display:none;align-items:center;justify-content:center;padding:16px}
+  .modal-backdrop.open{display:flex;animation:fadeIn .25s}
+  @keyframes fadeIn{from{opacity:0}to{opacity:1}}
+  .modal{width:100%;max-width:1100px;max-height:90vh;overflow-y:auto}
+  
+  .tab{padding:8px 14px;border-radius:10px;font-size:12px;font-weight:500;cursor:pointer;color:var(--ink-dim);transition:.2s;font-family:'Space Grotesk',sans-serif;white-space:nowrap}
+  .tab.active{background:var(--glass-2);color:var(--ink)}
+  .tab:hover:not(.active){color:var(--ink)}
+  
+  .toast-container{position:fixed;top:16px;right:16px;z-index:200;display:flex;flex-direction:column;gap:10px;pointer-events:none;max-width:calc(100vw - 32px)}
+  .toast{padding:14px 18px;border-radius:14px;font-size:13px;min-width:260px;max-width:360px;display:flex;align-items:center;gap:10px;animation:slideIn .3s cubic-bezier(.3,1.3,.5,1);pointer-events:auto}
+  @keyframes slideIn{from{transform:translateX(100%);opacity:0}to{transform:translateX(0);opacity:1}}
+  
+  .sec-label{font-size:11px;text-transform:uppercase;letter-spacing:0.12em;color:var(--ink-dim);font-weight:600;font-family:'Space Grotesk',sans-serif}
+  
+  .view{display:none}.view.active{display:block;animation:fadeUp .35s}
+  @keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+  
+  input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:4px;background:var(--glass-2);border-radius:999px;outline:none}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;border-radius:50%;background:linear-gradient(135deg,#00d4aa,#00a388);cursor:pointer;box-shadow:0 2px 10px rgba(0,212,170,0.5)}
+  
+  .logo-mark{width:36px;height:36px;border-radius:10px;background:conic-gradient(from 180deg at 50% 50%, #00d4aa, #7c5cff, #ff4d8f, #00d4aa);position:relative;box-shadow:0 4px 20px rgba(124,92,255,0.4);flex-shrink:0}
+  .logo-mark::after{content:'';position:absolute;inset:3px;border-radius:8px;background:var(--logo-inner)}
+  .logo-mark svg{position:absolute;inset:0;margin:auto;z-index:1}
+  
+  .badge-live{display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:999px;font-size:10px;font-weight:600;letter-spacing:0.1em;background:rgba(0,212,170,0.12);color:#00d4aa;border:1px solid rgba(0,212,170,0.3)}
+  body.light .badge-live{color:#00a884;border-color:rgba(0,168,132,0.35)}
+  .badge-live .dot{width:6px;height:6px;border-radius:50%;background:#00d4aa;animation:pulse 1.5s infinite}
+  
+  .kbd{padding:2px 6px;border-radius:5px;font-size:10px;background:var(--glass);border:1px solid var(--border);font-family:'Space Grotesk',monospace}
+  
+  .route-arrow{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:500;flex-wrap:wrap}
+  .route-arrow .arr{color:var(--accent-2)}
+  
+  .metric-card{position:relative;overflow:hidden}
+  .metric-card .icon-wrap{width:40px;height:40px;border-radius:12px;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,rgba(124,92,255,0.2),rgba(0,212,170,0.15));border:1px solid rgba(124,92,255,0.25)}
+  
+  .logic-chip{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:8px;font-size:11px;font-weight:500;background:rgba(124,92,255,0.1);border:1px solid rgba(124,92,255,0.25);color:#c4b5fd;font-family:'Space Grotesk',sans-serif;white-space:nowrap}
+  body.light .logic-chip{color:#6d4bff;background:rgba(109,75,255,0.08);border-color:rgba(109,75,255,0.25)}
+  
+  .app-layout{display:flex;min-height:100vh}
+  .sidebar{width:260px;flex-shrink:0;position:fixed;top:0;left:0;height:100vh;padding:20px;border-right:1px solid var(--sidebar-border);display:flex;flex-direction:column;gap:20px;overflow-y:auto;z-index:50;background:var(--bg);transition:transform .3s ease, background .3s}
+  body.light .sidebar{background:linear-gradient(180deg,#fafbfe 0%,#f4f5f9 100%)}
+  .main-content{flex:1;min-width:0;margin-left:260px;padding:24px}
+  .mobile-topbar{display:none}
+  .sidebar-backdrop{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);backdrop-filter:blur(4px);z-index:40}
+
+  .sidebar-actions{display:none;flex-direction:column;gap:8px}
+  .sidebar-actions .btn{width:100%;justify-content:center;padding:9px 14px;font-size:12.5px}
+
+  .theme-switch{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border-radius:12px;background:var(--glass);border:1px solid var(--border);cursor:pointer;transition:.2s}
+  .theme-switch:hover{background:var(--glass-2)}
+  .theme-switch .t-left{display:flex;align-items:center;gap:10px}
+  .theme-switch .t-icon{width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,rgba(124,92,255,0.2),rgba(0,212,170,0.15));border:1px solid rgba(124,92,255,0.25)}
+  .theme-switch .t-label{font-size:12px;font-weight:500;font-family:'Space Grotesk',sans-serif}
+  .theme-switch .t-sub{font-size:10px;color:var(--ink-dim)}
+  .sun-icon,.moon-icon{transition:opacity .2s}
+  body.light .sun-icon{opacity:1}body.light .moon-icon{opacity:0;position:absolute}
+  body:not(.light) .sun-icon{opacity:0;position:absolute}body:not(.light) .moon-icon{opacity:1}
+
+  .chart-wrap{position:relative;width:100%}
+  .chart-wrap.line-chart{height:180px;max-height:180px}
+  .chart-wrap.small-chart{height:150px;max-height:150px}
+  .chart-wrap canvas{width:100% !important;height:100% !important}
+
+  .age-chip{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:7px;font-size:10.5px;font-family:'Space Grotesk',monospace;font-weight:600;background:var(--glass);border:1px solid var(--border)}
+  .age-fresh{background:rgba(0,212,170,0.12);border-color:rgba(0,212,170,0.3);color:#00d4aa}
+  .age-warm{background:rgba(255,181,71,0.12);border-color:rgba(255,181,71,0.3);color:#ffb547}
+  .age-old{background:rgba(255,77,143,0.12);border-color:rgba(255,77,143,0.3);color:#ff4d8f}
+
+  .io-dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:3px}
+  .io-open{background:#00d4aa;box-shadow:0 0 6px #00d4aa}
+  .io-closed{background:#ff4d8f;box-shadow:0 0 6px #ff4d8f}
+
+  .blacklist-chip{display:inline-flex;align-items:center;gap:5px;padding:3px 8px;border-radius:8px;font-size:11px;font-weight:500;background:rgba(255,77,143,0.12);border:1px solid rgba(255,77,143,0.3);color:#ff4d8f;font-family:'Space Grotesk',sans-serif}
+  .blacklist-chip .x{cursor:pointer;opacity:.7;transition:.2s}
+  .blacklist-chip .x:hover{opacity:1}
+
+  /* Scrollable lists for settings */
+  .scrollable-list{
+    max-height: 520px; /* ~10 items * 52px */
+    overflow-y: auto;
+    padding-right: 4px;
+  }
+  .scrollable-list::-webkit-scrollbar{width:6px}
+  .scrollable-list::-webkit-scrollbar-thumb{background:var(--border-hi);border-radius:3px}
+  .scrollable-list::-webkit-scrollbar-track{background:transparent}
+
+  /* ============ RESPONSIVE ============ */
+  @media (min-width: 769px){.sidebar-actions{display:flex}.topbar-btns{display:none !important}}
+  @media (max-width: 1024px){
+    .main-content{padding:16px}
+    .metrics-grid{grid-template-columns:repeat(2,1fr) !important}
+    .dashboard-grid-top,.dashboard-grid-bottom,.ob-grid,.modal-grid,.settings-grid,.risk-grid{grid-template-columns:1fr !important}
+    .modal-stats-grid{grid-template-columns:repeat(2,1fr) !important}
+    .routes-steps{grid-template-columns:repeat(2,1fr) !important}
+    .tbl td,.tbl th{padding:10px 10px;font-size:12px}
+    .chart-wrap.line-chart{height:160px;max-height:160px}
+    .chart-wrap.small-chart{height:140px;max-height:140px}
+  }
+  @media (max-width: 768px){
+    .sidebar{transform:translateX(-100%)}
+    .sidebar.open{transform:translateX(0)}
+    .sidebar-backdrop.open{display:block}
+    .main-content{margin-left:0;padding:14px}
+    .mobile-topbar{display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:30;padding:10px 14px;margin:-14px -14px 14px -14px;background:var(--bg);border-bottom:1px solid var(--border)}
+    body.light .mobile-topbar{background:linear-gradient(180deg,#fafbfe 0%,#f4f5f9 100%)}
+    .mobile-topbar .logo-mark{width:30px;height:30px}
+    .mobile-topbar .logo-mark svg{width:14px;height:14px}
+    .burger-btn{width:38px;height:38px;border-radius:10px;background:var(--glass);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;cursor:pointer}
+    .topbar-btns{display:flex;gap:8px}
+    .topbar-btns .btn{flex:1;justify-content:center}
+    .scanner-header{flex-direction:column;align-items:flex-start !important}
+    .scanner-header-controls{width:100%;flex-direction:column;align-items:stretch}
+    .scanner-header-controls .flex.gap-1{width:100%;overflow-x:auto}
+    .filter-tabs-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+    .filter-tabs-wrap::-webkit-scrollbar{display:none}
+    .tbl{font-size:11px}
+    .tbl td,.tbl th{padding:10px 8px}
+    .metrics-grid{grid-template-columns:repeat(2,1fr) !important;gap:10px !important}
+    .metric-card{padding:14px !important}
+    .metric-card .font-display.text-\[28px\]{font-size:22px !important}
+    .ob-row .cell{min-width:50px;font-size:11px}
+    .view-detail-grid,.routes-steps,.modal-stats-grid{grid-template-columns:1fr !important}
+    h2.font-display{font-size:18px !important}
+    .chart-wrap.line-chart{height:150px;max-height:150px}
+    .chart-wrap.small-chart{height:130px;max-height:130px}
+  }
+  @media (max-width: 480px){
+    .metrics-grid{grid-template-columns:1fr !important}
+    .main-content{padding:10px}
+    .mobile-topbar{margin:-10px -10px 10px -10px}
+    .hide-on-xs{display:none !important}
+    .chart-wrap.line-chart{height:140px;max-height:140px}
+    .chart-wrap.small-chart{height:120px;max-height:120px}
+  }
+</style>
+</head>
+<body>
+<div class="ambient"></div>
+
+<div class="mobile-topbar">
+  <div class="burger-btn" id="burgerBtn">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h18M3 6h18M3 18h18"/></svg>
+  </div>
+  <div class="logo-mark">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="url(#lgm)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+      <defs><linearGradient id="lgm" x1="0" y1="0" x2="24" y2="24"><stop offset="0" stop-color="#00d4aa"/><stop offset="1" stop-color="#7c5cff"/></linearGradient></defs>
+      <path d="M4 7l4-4 4 4M8 3v18M20 17l-4 4-4-4M16 21V3"/>
+    </svg>
+  </div>
+  <div class="font-display text-[15px] font-bold">ARBITRA</div>
+  <span class="badge-live ml-auto"><span class="dot"></span>LIVE</span>
+</div>
+
+<div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+
+<div class="app-layout">
+  
+  <aside class="sidebar" id="sidebar">
+    <div class="flex items-center gap-3">
+      <div class="logo-mark">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="url(#lg)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <defs><linearGradient id="lg" x1="0" y1="0" x2="24" y2="24"><stop offset="0" stop-color="#00d4aa"/><stop offset="1" stop-color="#7c5cff"/></linearGradient></defs>
+          <path d="M4 7l4-4 4 4M8 3v18M20 17l-4 4-4-4M16 21V3"/>
+        </svg>
+      </div>
+      <div>
+        <div class="font-display text-[17px] font-bold">ARBITRA</div>
+        <div class="text-[10px] text-[var(--ink-soft)] tracking-[0.2em]">CEX⇄DEX TERMINAL</div>
+      </div>
+    </div>
+
+    <nav class="flex flex-col gap-1">
+      <div class="sec-label mb-2 px-3">Рабочее пространство</div>
+      <div class="nav-item active" data-view="scanner">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+        Сканер пар
+      </div>
+      <div class="nav-item" data-view="dashboard">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg>
+        Дашборд
+      </div>
+      <div class="nav-item" data-view="orderbooks">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+        Стаканы
+      </div>
+      <div class="nav-item" data-view="routes">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+        Маршруты
+      </div>
+      <div class="nav-item" data-view="history">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5M12 7v5l3 2"/></svg>
+        История
+      </div>
+    </nav>
+
+    <nav class="flex flex-col gap-1">
+      <div class="sec-label mb-2 px-3">Система</div>
+      <div class="nav-item" data-view="settings">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-1.8-.3 1.6 1.6 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.6 1.6 0 0 0-1-1.5 1.6 1.6 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.6 1.6 0 0 0 .3-1.8 1.6 1.6 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.6 1.6 0 0 0 1.5-1 1.6 1.6 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.6 1.6 0 0 0 1.8.3H9a1.6 1.6 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.6 1.6 0 0 0 1 1.5 1.6 1.6 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0-.3 1.8V9a1.6 1.6 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.6 1.6 0 0 0-1.5 1z"/></svg>
+        Настройки
+      </div>
+      <div class="nav-item" data-view="risk">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        Риск-менеджмент
+      </div>
+    </nav>
+
+    <div class="mt-auto space-y-3">
+      <div class="sidebar-actions">
+        <div class="sec-label mb-1 px-1">Управление</div>
+        <button class="btn scan-btn">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.5 9a9 9 0 0 1 14.9-3.4L23 10M1 14l4.6 4.4A9 9 0 0 0 20.5 15"/></svg>
+          Пересканировать
+        </button>
+        <button class="btn btn-primary start-engine-btn">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21"/></svg>
+          <span class="engine-label">Запустить движок</span>
+        </button>
+      </div>
+
+      <div class="theme-switch" id="themeSwitch">
+        <div class="t-left">
+          <div class="t-icon">
+            <span class="sun-icon" style="position:relative"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ffb547" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg></span>
+            <span class="moon-icon" style="position:relative"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#c4b5fd" stroke-width="2" stroke-linecap="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg></span>
+          </div>
+          <div>
+            <div class="t-label">Тема</div>
+            <div class="t-sub" id="themeLabel">Тёмная</div>
+          </div>
+        </div>
+        <div class="toggle" id="themeToggle"></div>
+      </div>
+      <div class="glass-chip p-3">
+        <div class="flex items-center justify-between mb-2">
+          <span class="text-[10px] tracking-widest text-[var(--ink-soft)]">ENGINE STATUS</span>
+          <span class="badge-live"><span class="dot"></span>LIVE</span>
+        </div>
+        <div class="flex items-center justify-between text-[12px]">
+          <span class="text-[var(--ink-soft)]">Пар отслеживается</span>
+          <span class="font-display font-bold" id="pairsCount">0</span>
+        </div>
+        <div class="flex items-center justify-between text-[12px] mt-1">
+          <span class="text-[var(--ink-soft)]">Задержка API</span>
+          <span class="font-display font-bold profit-pos">42ms</span>
+        </div>
+        <div class="flex items-center justify-between text-[12px] mt-1">
+          <span class="text-[var(--ink-soft)]">Интервал</span>
+          <span class="font-display font-bold" id="engineIntervalLabel">8с</span>
+        </div>
+      </div>
+      <div class="flex items-center gap-2 text-[11px] text-[var(--ink-soft)] px-2 hide-on-xs">
+        <span class="kbd">⌘K</span> быстрый поиск
+      </div>
+    </div>
+  </aside>
+
+  <main class="main-content">
+    
+    <div class="glass flex items-center gap-3 px-4 py-3 mb-4">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-[var(--ink-soft)]"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+      <input id="globalSearch" class="input border-0 bg-transparent p-0 focus:shadow-none" placeholder="Поиск пары, биржи, сети...   напр. SOL-USDT, MEXC, Base">
+      <span class="kbd ml-auto hide-on-xs">⌘K</span>
+    </div>
+
+    <div class="topbar-btns mb-5">
+      <button class="btn scan-btn">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.5 9a9 9 0 0 1 14.9-3.4L23 10M1 14l4.6 4.4A9 9 0 0 0 20.5 15"/></svg>
+        Пересканировать
+      </button>
+      <button class="btn btn-primary start-engine-btn">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" class="engine-icon-play"><polygon points="5,3 19,12 5,21"/></svg>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" class="engine-icon-stop" style="display:none"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+        <span class="engine-label">Запустить движок</span>
+      </button>
+    </div>
+
+    <div class="metrics-grid grid gap-4 mb-6" style="grid-template-columns:repeat(4,1fr)">
+      <div class="glass metric-card p-5">
+        <div class="flex items-start justify-between mb-3">
+          <div class="icon-wrap"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#00d4aa" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></div>
+          <span class="tag profit-pos">+12.4%</span>
+        </div>
+        <div class="sec-label mb-1">Активных возможностей</div>
+        <div class="font-display text-[28px] font-bold" id="metricOpps">24</div>
+        <div class="text-[11px] text-[var(--ink-soft)] mt-1">за последние 5 минут</div>
+      </div>
+      <div class="glass metric-card p-5">
+        <div class="flex items-start justify-between mb-3">
+          <div class="icon-wrap"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#7c5cff" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg></div>
+          <span class="tag profit-pos">↑ 8.2%</span>
+        </div>
+        <div class="sec-label mb-1">Лучший спред</div>
+        <div class="font-display text-[28px] font-bold profit-pos" id="metricBest">—</div>
+        <div class="text-[11px] text-[var(--ink-soft)] mt-1">текущий максимум</div>
+      </div>
+      <div class="glass metric-card p-5">
+        <div class="flex items-start justify-between mb-3">
+          <div class="icon-wrap"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ffb547" stroke-width="2"><path d="M3 3v18h18"/><path d="M7 14l4-4 4 4 5-5"/></svg></div>
+          <span class="tag">AVG 2.8%</span>
+        </div>
+        <div class="sec-label mb-1">Средний спред</div>
+        <div class="font-display text-[28px] font-bold" id="metricSpread">3.42%</div>
+        <div class="text-[11px] text-[var(--ink-soft)] mt-1">по отфильтрованным парам</div>
+      </div>
+      <div class="glass metric-card p-5">
+        <div class="flex items-start justify-between mb-3">
+          <div class="icon-wrap"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ff4d8f" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div>
+          <span class="tag">24h</span>
+        </div>
+        <div class="sec-label mb-1">Объём торгов</div>
+        <div class="font-display text-[28px] font-bold" id="metricVol">$2.1M</div>
+        <div class="text-[11px] text-[var(--ink-soft)] mt-1">по найденным парам</div>
+      </div>
+    </div>
+
+    <div class="view active" data-view="scanner">
+      <div class="glass-strong p-6" style="padding:clamp(14px,2vw,24px)">
+        <div class="scanner-header flex items-center justify-between mb-5 flex-wrap gap-4">
+          <div>
+            <h2 class="font-display text-[22px] font-bold mb-1">Сканер арбитражных возможностей</h2>
+            <p class="text-[12px] text-[var(--ink-soft)]">CEX: лимитные ордера · DEX: маркет исполнение</p>
+          </div>
+          <div class="scanner-header-controls flex items-center gap-2 flex-wrap">
+            <div class="filter-tabs-wrap flex gap-1 p-1 rounded-xl bg-black/10 border border-[var(--border)]" id="filterTabsWrap" style="background:var(--input-bg)">
+              <!-- Tabs generated dynamically -->
+            </div>
+            <button class="btn" id="exportBtn">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+              <span class="hide-on-xs">Экспорт</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2 mb-4 flex-wrap" id="activeFilters">
+          <span class="text-[11px] text-[var(--ink-soft)] mr-2">Фильтры:</span>
+          <div class="tag"><span class="profit-pos">●</span> Спред ≥ <span id="fltSpread">1.5</span>%</div>
+          <div class="tag">Объём <span id="fltMinVol">500</span>–<span id="fltMaxVol">50000</span> USDT</div>
+          <div class="tag hide-on-xs">Мин. ордер <span id="fltMinOrd">100</span> USDT</div>
+          <div class="logic-chip hide-on-xs">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+            CEX лимит · DEX маркет
+          </div>
+          <div class="tag" id="fltIOBadge" style="display:none">
+            <span class="io-dot io-open"></span>Ввод/Вывод открыт
+          </div>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="tbl" id="scannerTable">
+            <thead>
+              <tr>
+                <th>Пара</th>
+                <th class="hide-on-xs">Сеть</th>
+                <th class="hide-on-xs">CEX</th>
+                <th class="hide-on-xs">DEX</th>
+                <th class="text-right">Цена CEX</th>
+                <th class="text-right">Цена DEX</th>
+                <th class="sortable" data-sort="spread">Спред<span class="sort-ind" id="sortSpread">↕</span></th>
+                <th class="hide-on-xs">Направление</th>
+                <th class="hide-on-xs text-center">I/O</th>
+                <th class="sortable" data-sort="age">Возраст<span class="sort-ind" id="sortAge">↕</span></th>
+                <th class="text-right sortable" data-sort="volume">Объём 24h<span class="sort-ind" id="sortVolume">↕</span></th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="scannerBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="view" data-view="dashboard">
+      <div class="dashboard-grid-top grid gap-4 mb-6" style="grid-template-columns:2fr 1fr">
+        <div class="glass p-5">
+          <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
+            <div>
+              <h3 class="font-display text-[17px] font-bold">Динамика возможностей</h3>
+              <p class="text-[11px] text-[var(--ink-soft)]">Количество найденных арбитражных ситуаций по часам</p>
+            </div>
+            <div class="flex gap-1 p-1 rounded-xl" style="background:var(--input-bg)">
+              <div class="tab active">24ч</div><div class="tab">7д</div><div class="tab">30д</div>
+            </div>
+          </div>
+          <div class="chart-wrap line-chart"><canvas id="oppChart"></canvas></div>
+        </div>
+        <div class="glass p-5">
+          <h3 class="font-display text-[17px] font-bold mb-1">Топ-пары</h3>
+          <p class="text-[11px] text-[var(--ink-soft)] mb-4">По суммарному спреду за 24ч</p>
+          <div class="space-y-3" id="topPairsList"></div>
+        </div>
+      </div>
+      <div class="dashboard-grid-bottom grid gap-4" style="grid-template-columns:1fr 1fr">
+        <div class="glass p-5">
+          <h3 class="font-display text-[17px] font-bold mb-1">Распределение по биржам</h3>
+          <p class="text-[11px] text-[var(--ink-soft)] mb-4">Где чаще всего встречается арбитраж</p>
+          <div class="chart-wrap small-chart"><canvas id="exChart"></canvas></div>
+        </div>
+        <div class="glass p-5">
+          <h3 class="font-display text-[17px] font-bold mb-1">Нагрузка по сетям</h3>
+          <p class="text-[11px] text-[var(--ink-soft)] mb-4">Активность и gas-стоимость</p>
+          <div class="chart-wrap small-chart"><canvas id="netChart"></canvas></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="view" data-view="orderbooks">
+      <div class="glass-strong p-6" style="padding:clamp(14px,2vw,24px)">
+        <div class="flex items-center justify-between mb-5 flex-wrap gap-3">
+          <div>
+            <h2 class="font-display text-[22px] font-bold mb-1">Стаканы ордеров</h2>
+            <p class="text-[12px] text-[var(--ink-soft)]">CEX: цена лимитного ордера · DEX: рыночная цена</p>
+          </div>
+          <select class="input" id="obPairSelect" style="width:220px;max-width:100%"></select>
+        </div>
+        <div class="ob-grid grid gap-5" style="grid-template-columns:1fr 1fr">
+          <div class="glass p-5">
+            <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
+              <div>
+                <div class="sec-label mb-1">CEX · ЛИМИТ</div>
+                <div class="font-display text-[18px] font-bold flex items-center gap-2 flex-wrap"><span id="obCexName">MEXC</span> <span class="tag tag-mexc" id="obCexTag">MEXC</span></div>
+              </div>
+              <div class="text-right">
+                <div class="sec-label mb-1">Mid price</div>
+                <div class="font-display text-[18px] font-bold" id="obCexPrice">—</div>
+              </div>
+            </div>
+            <div class="text-[11px] text-[var(--ink-soft)] mb-2 flex justify-between"><span>PRICE (USDT)</span><span>SIZE</span><span>TOTAL</span></div>
+            <div id="obCexAsks" class="mb-2"></div>
+            <div class="my-3 py-3 border-y border-[var(--border)] text-center">
+              <div class="sec-label mb-1">SPREAD</div>
+              <div class="font-display text-[14px] font-bold" id="obCexSpread">—</div>
+            </div>
+            <div id="obCexBids"></div>
+          </div>
+          <div class="glass p-5">
+            <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
+              <div>
+                <div class="sec-label mb-1">DEX · МАРКЕТ</div>
+                <div class="font-display text-[18px] font-bold flex items-center gap-2 flex-wrap"><span id="obDexName">Raydium</span> <span class="tag tag-sol">SOL</span></div>
+              </div>
+              <div class="text-right">
+                <div class="sec-label mb-1">Mid price</div>
+                <div class="font-display text-[18px] font-bold" id="obDexPrice">—</div>
+              </div>
+            </div>
+            <div class="text-[11px] text-[var(--ink-soft)] mb-2 flex justify-between"><span>PRICE (USDT)</span><span>SIZE</span><span>TOTAL</span></div>
+            <div id="obDexAsks" class="mb-2"></div>
+            <div class="my-3 py-3 border-y border-[var(--border)] text-center">
+              <div class="sec-label mb-1">SPREAD</div>
+              <div class="font-display text-[14px] font-bold" id="obDexSpread">—</div>
+            </div>
+            <div id="obDexBids"></div>
+          </div>
+        </div>
+        <div class="glass p-4 mt-5">
+          <div class="sec-label mb-2">Логика расчёта фактической цены</div>
+          <div class="text-[12px] text-[var(--ink-soft)] leading-relaxed" id="obCalc"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="view" data-view="routes">
+      <div class="glass-strong p-6" style="padding:clamp(14px,2vw,24px)">
+        <div class="flex items-center justify-between mb-5">
+          <div>
+            <h2 class="font-display text-[22px] font-bold mb-1">Маршруты арбитража</h2>
+            <p class="text-[12px] text-[var(--ink-soft)]">Полные маршруты с разбивкой комиссий, slippage и gas</p>
+          </div>
+        </div>
+        <div class="space-y-3" id="routesList"></div>
+      </div>
+    </div>
+
+    <div class="view" data-view="history">
+      <div class="glass-strong p-6" style="padding:clamp(14px,2vw,24px)">
+        <div class="flex items-center justify-between mb-5 flex-wrap gap-3">
+          <div>
+            <h2 class="font-display text-[22px] font-bold mb-1">История обнаружений</h2>
+            <p class="text-[12px] text-[var(--ink-soft)]">Все найденные возможности за текущую сессию</p>
+          </div>
+          <div class="flex gap-2">
+            <button class="btn" id="clearHist">Очистить</button>
+            <button class="btn btn-primary" id="exportHistBtn">Экспорт CSV</button>
+          </div>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="tbl">
+            <thead>
+              <tr>
+                <th>Время</th>
+                <th>Пара</th>
+                <th class="hide-on-xs">Маршрут</th>
+                <th>Спред</th>
+                <th class="text-right">Объём</th>
+                <th>Статус</th>
+              </tr>
+            </thead>
+            <tbody id="historyBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="view" data-view="settings">
+      <div class="settings-grid grid gap-5" style="grid-template-columns:1fr 1fr">
+        <div class="glass p-6">
+          <h3 class="font-display text-[17px] font-bold mb-1">Объёмы и пороги</h3>
+          <p class="text-[11px] text-[var(--ink-soft)] mb-5">Критерии фильтрации найденных пар</p>
+          <div class="space-y-5">
+            <div>
+              <div class="flex justify-between mb-2"><label class="text-[12px] text-[var(--ink-soft)]">Минимальный дневной объём</label><span class="font-display font-bold" id="lblMinVol">500 USDT</span></div>
+              <input type="range" id="rngMinVol" min="0" max="1000000" step="1000" value="500">
+              <div class="text-[10px] text-[var(--ink-soft)] mt-1">Диапазон: 0 — 1,000,000 USDT</div>
+            </div>
+            <div>
+              <div class="flex justify-between mb-2"><label class="text-[12px] text-[var(--ink-soft)]">Максимальный дневной объём</label><span class="font-display font-bold" id="lblMaxVol">50,000 USDT</span></div>
+              <input type="range" id="rngMaxVol" min="1000" max="10000000" step="10000" value="50000">
+              <div class="text-[10px] text-[var(--ink-soft)] mt-1">Диапазон: 1,000 — 10,000,000 USDT</div>
+            </div>
+            <div>
+              <div class="flex justify-between mb-2"><label class="text-[12px] text-[var(--ink-soft)]">Минимальная разница цен (спред)</label><span class="font-display font-bold" id="lblSpread">1.5%</span></div>
+              <input type="range" id="rngSpread" min="0.1" max="15" step="0.1" value="1.5">
+            </div>
+            <div>
+              <div class="flex justify-between mb-2"><label class="text-[12px] text-[var(--ink-soft)]">Минимальный размер ордера в стакане (CEX)</label><span class="font-display font-bold" id="lblMinOrd">100 USDT</span></div>
+              <input type="range" id="rngMinOrd" min="10" max="5000" step="10" value="100">
+              <p class="text-[11px] text-[var(--ink-soft)] mt-2">Бот будет брать цену только из ордеров ≥ этого значения. Мелкие ордера в стакане игнорируются.</p>
+            </div>
+            <div>
+              <div class="flex justify-between mb-2"><label class="text-[12px] text-[var(--ink-soft)]">Максимальный slippage на DEX</label><span class="font-display font-bold" id="lblSlip">1.0%</span></div>
+              <input type="range" id="rngSlip" min="0.1" max="5" step="0.1" value="1.0">
+            </div>
+            <div>
+              <div class="flex justify-between mb-2"><label class="text-[12px] text-[var(--ink-soft)]">⏱ Интервал обновления движка</label><span class="font-display font-bold" id="lblRefresh">8 сек</span></div>
+              <input type="range" id="rngRefresh" min="3" max="120" step="1" value="8">
+              <div class="text-[10px] text-[var(--ink-soft)] mt-1">Диапазон: 3 — 120 секунд. Применяется к автообновлению движка.</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="glass p-6">
+          <h3 class="font-display text-[17px] font-bold mb-1">Комиссии</h3>
+          <p class="text-[11px] text-[var(--ink-soft)] mb-5">Для расчёта нетто-спреда</p>
+          <div class="space-y-4">
+            <div class="grid grid-cols-2 gap-3">
+              <div><label class="text-[11px] text-[var(--ink-soft)] block mb-1">CEX taker fee</label><input class="input" id="cexFee" type="number" value="0.1" step="0.01">%</div>
+              <div><label class="text-[11px] text-[var(--ink-soft)] block mb-1">CEX withdrawal</label><input class="input" id="cexWd" type="number" value="1.0" step="0.1"> USDT</div>
+              <div><label class="text-[11px] text-[var(--ink-soft)] block mb-1">DEX swap fee</label><input class="input" id="dexFee" type="number" value="0.3" step="0.05">%</div>
+              <div><label class="text-[11px] text-[var(--ink-soft)] block mb-1">Bridge fee</label><input class="input" id="bridgeFee" type="number" value="0.2" step="0.05">%</div>
+            </div>
+            <div class="mt-3">
+              <label class="text-[11px] text-[var(--ink-soft)] block mb-1">Ожидаемая стоимость газа</label>
+              <div class="grid grid-cols-2 gap-3">
+                <input class="input" id="gasSol" type="number" value="0.005" step="0.001" placeholder="SOL USDT">
+                <input class="input" id="gasBase" type="number" value="0.15" step="0.01" placeholder="Base USDT">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="glass p-6">
+          <h3 class="font-display text-[17px] font-bold mb-1">Чёрный список монет</h3>
+          <p class="text-[11px] text-[var(--ink-soft)] mb-4">Исключить тикеры из сканирования (через запятую или пробел)</p>
+          <input class="input mb-3" id="blacklistInput" placeholder="Например: USDC, SHIB, LUNA">
+          <button class="btn mb-3" id="addBlacklistBtn" style="width:100%">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+            Добавить в чёрный список
+          </button>
+          <div class="flex flex-wrap gap-2" id="blacklistChips"></div>
+          <p class="text-[10px] text-[var(--ink-soft)] mt-3">Пары из чёрного списка будут полностью игнорироваться сканером.</p>
+        </div>
+
+        <div class="glass p-6">
+          <h3 class="font-display text-[17px] font-bold mb-1">Фильтры ввода/вывода</h3>
+          <p class="text-[11px] text-[var(--ink-soft)] mb-5">Ограничения по доступности депозита и вывода</p>
+          <div class="space-y-3">
+            <div class="flex items-center justify-between">
+              <div>
+                <div class="text-[13px] font-medium">Только с открытым вводом/выводом</div>
+                <div class="text-[11px] text-[var(--ink-soft)]">Скрывать пары где депозит или вывод закрыт</div>
+              </div>
+              <div class="toggle" data-toggle="only-open-io"></div>
+            </div>
+            <div class="flex items-center justify-between">
+              <div>
+                <div class="text-[13px] font-medium">Предупреждать о закрытом выводе</div>
+                <div class="text-[11px] text-[var(--ink-soft)]">Маркировать пары индикатором в таблице</div>
+              </div>
+              <div class="toggle on" data-toggle="warn-closed-io"></div>
+            </div>
+            <div class="flex items-center justify-between">
+              <div>
+                <div class="text-[13px] font-medium">Авто-проверка статуса на CEX</div>
+                <div class="text-[11px] text-[var(--ink-soft)]">Периодически запрашивать статус депозита/вывода</div>
+              </div>
+              <div class="toggle on" data-toggle="auto-check-io"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="glass p-6">
+          <h3 class="font-display text-[17px] font-bold mb-1">CEX биржи</h3>
+          <p class="text-[11px] text-[var(--ink-soft)] mb-4">Выберите биржи для мониторинга (прокрутите для просмотра всех)</p>
+          <div class="scrollable-list space-y-2" id="cexList"></div>
+        </div>
+
+        <div class="glass p-6">
+          <h3 class="font-display text-[17px] font-bold mb-1">DEX источники</h3>
+          <p class="text-[11px] text-[var(--ink-soft)] mb-4">Агрегаторы и пулы (прокрутите для просмотра всех)</p>
+          <div class="scrollable-list space-y-2" id="dexList"></div>
+        </div>
+
+        <div class="glass p-6">
+          <h3 class="font-display text-[17px] font-bold mb-1">Сети</h3>
+          <p class="text-[11px] text-[var(--ink-soft)] mb-4">Активные блокчейны (прокрутите для просмотра всех)</p>
+          <div class="scrollable-list space-y-2" id="netList"></div>
+        </div>
+
+        <div class="glass p-6">
+          <h3 class="font-display text-[17px] font-bold mb-1">Уведомления</h3>
+          <p class="text-[11px] text-[var(--ink-soft)] mb-5">Когда и как оповещать</p>
+          <div class="space-y-3">
+            <div class="flex items-center justify-between">
+              <div><div class="text-[13px] font-medium">Push в браузере</div><div class="text-[11px] text-[var(--ink-soft)]">При обнаружении возможности</div></div>
+              <div class="toggle on" data-toggle="notif-push"></div>
+            </div>
+            <div class="flex items-center justify-between">
+              <div><div class="text-[13px] font-medium">Звуковой сигнал</div><div class="text-[11px] text-[var(--ink-soft)]">Только для спреда &gt; 5%</div></div>
+              <div class="toggle on" data-toggle="notif-sound"></div>
+            </div>
+            <div class="flex items-center justify-between">
+              <div><div class="text-[13px] font-medium">Telegram бот</div><div class="text-[11px] text-[var(--ink-soft)]">Дублировать в канал</div></div>
+              <div class="toggle" data-toggle="notif-tg"></div>
+            </div>
+            <div class="mt-2"><label class="text-[11px] text-[var(--ink-soft)] block mb-1">Telegram Bot Token</label><input class="input" placeholder="123456:ABC-..." type="password"></div>
+            <div><label class="text-[11px] text-[var(--ink-soft)] block mb-1">Chat ID</label><input class="input" placeholder="-100123456789"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="flex justify-end gap-3 mt-5">
+        <button class="btn">Сбросить</button>
+        <button class="btn btn-primary" id="saveSettings">Сохранить настройки</button>
+      </div>
+    </div>
+
+    <div class="view" data-view="risk">
+      <div class="risk-grid grid gap-4 mb-5" style="grid-template-columns:repeat(3,1fr)">
+        <div class="glass p-5"><div class="sec-label mb-2">Оценка риска сети</div><div class="font-display text-[22px] font-bold profit-pos">Низкий</div><div class="text-[11px] text-[var(--ink-soft)] mt-1">Обе сети стабильны</div></div>
+        <div class="glass p-5"><div class="sec-label mb-2">Средняя волатильность пар</div><div class="font-display text-[22px] font-bold profit-warn">4.2%</div><div class="text-[11px] text-[var(--ink-soft)] mt-1">за последние 15 мин</div></div>
+        <div class="glass p-5"><div class="sec-label mb-2">Ликвидность пулов</div><div class="font-display text-[22px] font-bold profit-pos">Высокая</div><div class="text-[11px] text-[var(--ink-soft)] mt-1">средняя глубина $420k</div></div>
+      </div>
+      <div class="glass p-6">
+        <h3 class="font-display text-[17px] font-bold mb-1">Чек-лист перед сделкой</h3>
+        <p class="text-[11px] text-[var(--ink-soft)] mb-5">Автоматические проверки, которые проходит каждая возможность</p>
+        <div class="space-y-3" id="riskChecklist"></div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<div class="modal-backdrop" id="modal">
+  <div class="glass-strong modal p-7" id="modalContent" style="padding:clamp(16px,3vw,28px)"></div>
+</div>
+
+<div class="toast-container" id="toasts"></div>
+
+<script>
+// ============ PRICE FORMAT ============
+function fmtPrice(v){
+  if(v === 0) return '0';
+  if(!isFinite(v)) return '—';
+  const abs = Math.abs(v);
+  if(abs >= 1000) return v.toFixed(2);
+  if(abs >= 1)    return v.toFixed(3);
+  if(abs >= 0.01) return v.toFixed(4);
+  if(abs >= 0.0001) return v.toFixed(6);
+  return v.toFixed(10).replace(/0+$/,'').replace(/\.$/,'');
+}
+function fmtPriceBook(v){
+  if(v === 0) return '0';
+  if(!isFinite(v)) return '—';
+  const abs = Math.abs(v);
+  if(abs >= 1000) return v.toFixed(2);
+  if(abs >= 1)    return v.toFixed(3);
+  if(abs >= 0.01) return v.toFixed(4);
+  if(abs >= 0.0001) return v.toFixed(5);
+  return v.toFixed(10).replace(/0+$/,'').replace(/\.$/,'');
+}
+
+// ============ AGE FORMAT ============
+function fmtAge(ms){
+  const s = Math.floor(ms/1000);
+  if(s < 60) return s+'с';
+  if(s < 3600) return Math.floor(s/60)+'м '+s%60+'с';
+  return Math.floor(s/3600)+'ч '+Math.floor((s%3600)/60)+'м';
+}
+function ageClass(ms){
+  const s = Math.floor(ms/1000);
+  if(s < 60) return 'age-fresh';
+  if(s < 300) return 'age-warm';
+  return 'age-old';
+}
+
+// ============ EXCHANGES ============
+const CEX = [
+  {id:'mexc', name:'MEXC', tag:'tag-mexc', color:'#3ddbb8', on:true, url:(s,b)=>`https://www.mexc.com/exchange/${s}_${b}`},
+  {id:'binance', name:'Binance', tag:'tag-binance', color:'#f3ba2f', on:true, url:(s,b)=>`https://www.binance.com/en/trade/${s}_${b}`},
+  {id:'bybit', name:'Bybit', tag:'tag-bybit', color:'#f7a52c', on:true, url:(s,b)=>`https://www.bybit.com/trade/spot/${s}/${b}`},
+  {id:'okx', name:'OKX', tag:'tag-okx', color:'#ffffff', on:true, url:(s,b)=>`https://www.okx.com/trade-spot/${s.toLowerCase()}-${b.toLowerCase()}`},
+  {id:'gate', name:'Gate.io', tag:'tag-gate', color:'#38c5de', on:false, url:(s,b)=>`https://www.gate.io/trade/${s}_${b}`},
+  {id:'kucoin', name:'KuCoin', tag:'tag-kucoin', color:'#23af8c', on:true, url:(s,b)=>`https://www.kucoin.com/trade/${s}-${b}`},
+  {id:'htx', name:'HTX', tag:'tag-htx', color:'#2e8fee', on:false, url:(s,b)=>`https://www.htx.com/trade/${s.toLowerCase()}_${b.toLowerCase()}`},
+  {id:'bitget', name:'Bitget', tag:'tag-bitget', color:'#00d0e7', on:false, url:(s,b)=>`https://www.bitget.com/spot/${s}${b}`},
+  {id:'kraken', name:'Kraken', tag:'tag-kraken', color:'#7c5cff', on:false, url:(s,b)=>`https://pro.kraken.com/app/trade/${s}-${b}`},
+  {id:'coinbase', name:'Coinbase', tag:'tag-coinbase', color:'#2e6bff', on:false, url:(s,b)=>`https://www.coinbase.com/advanced-trade/spot/${s}-${b}`},
+  {id:'bitfinex', name:'Bitfinex', tag:'tag-bitfinex', color:'#4db34d', on:false, url:(s,b)=>`https://trading.bitfinex.com/t/${s}:${b}`},
+  {id:'cryptodotcom', name:'Crypto.com', tag:'tag-cryptodotcom', color:'#3c6fc8', on:false, url:(s,b)=>`https://crypto.com/exchange/trade/spot/${s}_${b}`},
+  {id:'bingx', name:'BingX', tag:'tag-bingx', color:'#2e8fee', on:false, url:(s,b)=>`https://bingx.com/en/spot/${s}-${b}/`},
+  {id:'xt', name:'XT.com', tag:'tag-xt', color:'#00a884', on:false, url:(s,b)=>`https://www.xt.com/en/trade/${s.toLowerCase()}_${b.toLowerCase()}`},
+  {id:'poloniex', name:'Poloniex', tag:'tag-poloniex', color:'#585be1', on:false, url:(s,b)=>`https://poloniex.com/trade/${s}_${b}/`},
+];
+
+// ============ NETWORKS (top 15) ============
+const NETS = [
+  {id:'eth', name:'Ethereum', sym:'ETH', on:true, color:'#627eea'},
+  {id:'sol', name:'Solana', sym:'SOL', on:true, color:'#9945ff'},
+  {id:'base', name:'Base', sym:'BASE', on:true, color:'#2e6bff'},
+  {id:'arb', name:'Arbitrum', sym:'ARB', on:true, color:'#28a0f0'},
+  {id:'op', name:'Optimism', sym:'OP', on:false, color:'#ff0420'},
+  {id:'matic', name:'Polygon', sym:'MATIC', on:false, color:'#8247e5'},
+  {id:'bnb', name:'BNB Chain', sym:'BNB', on:false, color:'#f3ba2f'},
+  {id:'avax', name:'Avalanche', sym:'AVAX', on:false, color:'#e84142'},
+  {id:'ftm', name:'Fantom', sym:'FTM', on:false, color:'#1969ff'},
+  {id:'cro', name:'Cronos', sym:'CRO', on:false, color:'#2052d4'},
+  {id:'linea', name:'Linea', sym:'LINEA', on:false, color:'#613ef5'},
+  {id:'zksync', name:'zkSync Era', sym:'ZKSYNC', on:false, color:'#4e56e1'},
+  {id:'blast', name:'Blast', sym:'BLAST', on:false, color:'#c8c803'},
+  {id:'mantle', name:'Mantle', sym:'MANTLE', on:false, color:'#000000'},
+  {id:'trx', name:'Tron', sym:'TRX', on:false, color:'#eb001b'},
+];
+
+// ============ DEX (per network) ============
+const DEX = [
+  {id:'uniswapv3', name:'Uniswap V3', net:'ETH', on:true, url:(s,b)=>`https://app.uniswap.org/swap?outputCurrency=USDT`},
+  {id:'sushiswap', name:'SushiSwap', net:'ETH', on:false, url:(s,b)=>`https://www.sushi.com/swap`},
+  {id:'curve', name:'Curve', net:'ETH', on:false, url:(s,b)=>`https://curve.fi/#/ethereum/pools`},
+  {id:'raydium', name:'Raydium', net:'SOL', on:true, url:(s,b)=>`https://raydium.io/swap/?from=${s}&to=${b}`},
+  {id:'orca', name:'Orca', net:'SOL', on:true, url:(s,b)=>`https://www.orca.so/?tokenIn=${s}&tokenOut=${b}`},
+  {id:'jupiter', name:'Jupiter', net:'SOL', on:true, url:(s,b)=>`https://jup.ag/swap/${s}-${b}`},
+  {id:'aerodrome', name:'Aerodrome', net:'BASE', on:true, url:(s,b)=>`https://aerodrome.finance/swap?from=${s}&to=${b}`},
+  {id:'uniswap-base', name:'Uniswap', net:'BASE', on:true, url:(s,b)=>`https://app.uniswap.org/swap?chain=base`},
+  {id:'baseswap', name:'BaseSwap', net:'BASE', on:false, url:(s,b)=>`https://baseswap.fi/swap`},
+  {id:'camelot', name:'Camelot', net:'ARB', on:false, url:(s,b)=>`https://app.camelot.exchange/`},
+  {id:'uniswap-arb', name:'Uniswap', net:'ARB', on:true, url:(s,b)=>`https://app.uniswap.org/swap?chain=arbitrum`},
+  {id:'traderjoe-arb', name:'TraderJoe', net:'ARB', on:false, url:(s,b)=>`https://traderjoexyz.com/arbitrum/trade`},
+  {id:'velodrome', name:'Velodrome', net:'OP', on:false, url:(s,b)=>`https://velodrome.finance/swap`},
+  {id:'uniswap-op', name:'Uniswap', net:'OP', on:false, url:(s,b)=>`https://app.uniswap.org/swap?chain=optimism`},
+  {id:'quickswap', name:'QuickSwap', net:'MATIC', on:false, url:(s,b)=>`https://quickswap.exchange/#/swap`},
+  {id:'pancakeswap', name:'PancakeSwap', net:'BNB', on:false, url:(s,b)=>`https://pancakeswap.finance/swap`},
+  {id:'traderjoe-avax', name:'TraderJoe', net:'AVAX', on:false, url:(s,b)=>`https://traderjoexyz.com/avalanche/trade`},
+  {id:'spookyswap', name:'SpookySwap', net:'FTM', on:false, url:(s,b)=>`https://spooky.fi/#/swap`},
+  {id:'vvfinance', name:'VVS Finance', net:'CRO', on:false, url:(s,b)=>`https://vvs.finance/swap`},
+  {id:'lynex', name:'Lynex', net:'LINEA', on:false, url:(s,b)=>`https://app.lynex.fi/`},
+  {id:'syncswap-linea', name:'SyncSwap', net:'LINEA', on:false, url:(s,b)=>`https://syncswap.xyz/`},
+  {id:'syncswap', name:'SyncSwap', net:'ZKSYNC', on:false, url:(s,b)=>`https://syncswap.xyz/`},
+  {id:'mute', name:'Mute', net:'ZKSYNC', on:false, url:(s,b)=>`https://mute.io/switch`},
+  {id:'thruster', name:'Thruster', net:'BLAST', on:false, url:(s,b)=>`https://app.thruster.finance/swap`},
+  {id:'fenix', name:'Fenix', net:'BLAST', on:false, url:(s,b)=>`https://fenix.blast.io/`},
+  {id:'merchantmoe', name:'Merchant Moe', net:'MANTLE', on:false, url:(s,b)=>`https://merchantmoe.com/trade`},
+  {id:'sunswap', name:'SunSwap', net:'TRX', on:false, url:(s,b)=>`https://sun.io/#/sunswap/home/swap`},
+];
+
+// ============ PAIRS ============
+const PAIRS_POOL = [
+  {sym:'SOL',full:'SOL/USDT',base:'USDT',net:'SOL',cexPrice:182.34,dexPrice:187.92},
+  {sym:'BONK',full:'BONK/USDT',base:'USDT',net:'SOL',cexPrice:0.0000234,dexPrice:0.0000252},
+  {sym:'WIF',full:'WIF/USDT',base:'USDT',net:'SOL',cexPrice:2.18,dexPrice:2.31},
+  {sym:'JUP',full:'JUP/USDT',base:'USDT',net:'SOL',cexPrice:0.982,dexPrice:1.04},
+  {sym:'PYTH',full:'PYTH/USDT',base:'USDT',net:'SOL',cexPrice:0.412,dexPrice:0.437},
+  {sym:'RENDER',full:'RENDER/USDT',base:'USDT',net:'SOL',cexPrice:6.82,dexPrice:7.14},
+  {sym:'JTO',full:'JTO/USDT',base:'USDT',net:'SOL',cexPrice:3.21,dexPrice:3.42},
+  {sym:'TNSR',full:'TNSR/USDT',base:'USDT',net:'SOL',cexPrice:0.62,dexPrice:0.665},
+  {sym:'BRETT',full:'BRETT/USDT',base:'USDT',net:'BASE',cexPrice:0.142,dexPrice:0.151},
+  {sym:'AERO',full:'AERO/USDT',base:'USDT',net:'BASE',cexPrice:1.18,dexPrice:1.258},
+  {sym:'DEGEN',full:'DEGEN/USDT',base:'USDT',net:'BASE',cexPrice:0.0182,dexPrice:0.0196},
+  {sym:'VIRTUAL',full:'VIRTUAL/USDT',base:'USDT',net:'BASE',cexPrice:1.42,dexPrice:1.51},
+  {sym:'TOSHI',full:'TOSHI/USDT',base:'USDT',net:'BASE',cexPrice:0.00082,dexPrice:0.00088},
+  {sym:'cbETH',full:'cbETH/USDT',base:'USDT',net:'BASE',cexPrice:3240,dexPrice:3285},
+  {sym:'MOG',full:'MOG/USDT',base:'USDT',net:'BASE',cexPrice:0.0000021,dexPrice:0.00000228},
+  {sym:'HIGHER',full:'HIGHER/USDT',base:'USDT',net:'BASE',cexPrice:0.072,dexPrice:0.0768},
+  {sym:'ETH',full:'ETH/USDT',base:'USDT',net:'ETH',cexPrice:3420,dexPrice:3428},
+  {sym:'ARB',full:'ARB/USDT',base:'USDT',net:'ARB',cexPrice:0.78,dexPrice:0.81},
+  {sym:'OP',full:'OP/USDT',base:'USDT',net:'OP',cexPrice:1.64,dexPrice:1.69},
+  {sym:'LINK',full:'LINK/USDT',base:'USDT',net:'ETH',cexPrice:14.5,dexPrice:14.65},
+  {sym:'MATIC',full:'MATIC/USDT',base:'USDT',net:'MATIC',cexPrice:0.52,dexPrice:0.535},
+  {sym:'AVAX',full:'AVAX/USDT',base:'USDT',net:'AVAX',cexPrice:32.4,dexPrice:33.1},
+  {sym:'BNB',full:'BNB/USDT',base:'USDT',net:'BNB',cexPrice:598,dexPrice:601},
+];
+
+function pickCex(){
+  const on = CEX.filter(c=>c.on);
+  return on[Math.floor(Math.random()*on.length)];
+}
+function pickDex(net){
+  const on = DEX.filter(d=>d.on && d.net===net);
+  if(on.length === 0) return DEX.filter(d=>d.net===net)[0] || DEX[0];
+  return on[Math.floor(Math.random()*on.length)];
+}
+
+function genOrderbook(midPrice, depth=10, volatility=0.003){
+  const bids=[], asks=[];
+  let bidAcc=0, askAcc=0;
+  for(let i=0;i<depth;i++){
+    const bidP = midPrice * (1 - volatility*(i+1) - Math.random()*0.001);
+    const askP = midPrice * (1 + volatility*(i+1) + Math.random()*0.001);
+    const bidSize = (Math.random()*80 + 10) * (1 + i*0.4) * (Math.random()<0.15?8:1);
+    const askSize = (Math.random()*80 + 10) * (1 + i*0.4) * (Math.random()<0.15?8:1);
+    bidAcc += bidP*bidSize;
+    askAcc += askP*askSize;
+    bids.push({price:bidP, size:bidSize, total:bidAcc});
+    asks.push({price:askP, size:askSize, total:askAcc});
+  }
+  return {bids:bids.sort((a,b)=>b.price-a.price), asks:asks.sort((a,b)=>a.price-b.price)};
+}
+
+function effectivePrice(book, side, minUsd, isLimit=false){
+  let levels;
+  if(isLimit){ levels = side==='buy' ? book.bids : book.asks; }
+  else { levels = side==='buy' ? book.asks : book.bids; }
+  for(const lvl of levels){
+    const usdVal = lvl.price * lvl.size;
+    if(usdVal >= minUsd){
+      return {price:lvl.price, size:lvl.size, usd:usdVal, skippedLevels:levels.indexOf(lvl), side, isLimit};
+    }
+  }
+  const last = levels[levels.length-1];
+  return {price:last.price, size:last.size, usd:last.price*last.size, skippedLevels:levels.length-1, fallback:true, side, isLimit};
+}
+
+const settings = {
+  minVol:500, maxVol:50000,
+  minSpread:1.5,
+  minOrderUsd:100,
+  maxSlippage:1.0,
+  refreshInterval: 8,
+  cexFee:0.1, cexWd:1.0, dexFee:0.3, bridgeFee:0.2,
+  gasSol:0.005, gasBase:0.15,
+  onlyOpenIO: false,
+  warnClosedIO: true,
+  autoCheckIO: true,
+  blacklist: new Set(),
+};
+
+let opportunities = [];
+let history = [];
+let sortField = 'spread';
+let sortDir = 'desc';
+
+function generateOpportunities(){
+  const opps = [];
+  for(const p of PAIRS_POOL){
+    if(settings.blacklist.has(p.sym.toUpperCase())) continue;
+    const numCombos = 2 + Math.floor(Math.random()*3);
+    const usedCex = new Set();
+    for(let i=0;i<numCombos;i++){
+      let cex = pickCex();
+      let tries=0;
+      while(usedCex.has(cex.id) && tries<6){cex=pickCex();tries++}
+      usedCex.add(cex.id);
+      const dex = pickDex(p.net);
+      const cexMid = p.cexPrice * (1 + (Math.random()-0.5)*0.008);
+      const dexMid = p.dexPrice * (1 + (Math.random()-0.5)*0.012);
+      const cexBook = genOrderbook(cexMid);
+      const dexBook = genOrderbook(dexMid, 8, 0.004);
+      const rawSpread = (dexMid - cexMid)/cexMid;
+      let direction, buyEff, sellEff;
+      if(rawSpread > 0){
+        direction = 'CEX→DEX';
+        buyEff = effectivePrice(cexBook, 'buy', settings.minOrderUsd, true);
+        sellEff = effectivePrice(dexBook, 'sell', settings.minOrderUsd, false);
+      } else {
+        direction = 'DEX→CEX';
+        buyEff = effectivePrice(dexBook, 'buy', settings.minOrderUsd, false);
+        sellEff = effectivePrice(cexBook, 'sell', settings.minOrderUsd, true);
+      }
+      const grossSpread = ((sellEff.price - buyEff.price)/buyEff.price)*100;
+      const fees = settings.cexFee + settings.dexFee + (direction==='CEX→DEX'?settings.bridgeFee:0) + settings.maxSlippage;
+      const netSpread = grossSpread - fees;
+      const vol = (500 + Math.random()*80000) * (p.sym==='SOL'?5:1);
+      const depositOpen = Math.random() > 0.15;
+      const withdrawOpen = Math.random() > 0.20;
+      opps.push({
+        id: `${p.sym}-${cex.id}-${dex.id}-${Date.now()}-${Math.random()}`,
+        pair: p, cex, dex, direction, buyEff, sellEff,
+        cexBook, dexBook, grossSpread, netSpread,
+        volume24h: vol,
+        timestamp: Date.now() - Math.floor(Math.random()*600000),
+        depositOpen, withdrawOpen,
+      });
+    }
+  }
+  const filtered = opps.filter(o =>
+    o.netSpread >= settings.minSpread &&
+    o.volume24h >= settings.minVol &&
+    o.volume24h <= settings.maxVol &&
+    (!settings.onlyOpenIO || (o.depositOpen && o.withdrawOpen))
+  );
+  opportunities = filtered;
+  applySorting();
+  return filtered;
+}
+
+function applySorting(){
+  const dir = sortDir === 'desc' ? -1 : 1;
+  opportunities.sort((a,b)=>{
+    if(sortField === 'volume') return (a.volume24h - b.volume24h) * dir;
+    if(sortField === 'age') return ((Date.now()-a.timestamp) - (Date.now()-b.timestamp)) * dir;
+    return (a.netSpread - b.netSpread) * dir;
+  });
+}
+
+function updateSortIndicators(){
+  ['Spread','Volume','Age'].forEach(key=>{
+    const el = document.getElementById('sort'+key);
+    const f = key.toLowerCase();
+    if(el){
+      el.textContent = sortField===f ? (sortDir==='desc'?'↓':'↑') : '↕';
+      el.classList.toggle('active', sortField===f);
+    }
+  });
+}
+
+// ============ DYNAMIC FILTER TABS FOR NETWORKS ============
+function renderFilterTabs(){
+  const wrap = document.getElementById('filterTabsWrap');
+  if(!wrap) return;
+  const currentActive = document.querySelector('.tab[data-filter].active')?.dataset.filter || 'all';
+  // Build tabs: "Все" + all active networks
+  const activeNets = NETS.filter(n => n.on);
+  let html = `<div class="tab ${currentActive==='all'?'active':''}" data-filter="all">Все</div>`;
+  activeNets.forEach(n => {
+    html += `<div class="tab ${currentActive===n.sym?'active':''}" data-filter="${n.sym}">${n.name}</div>`;
+  });
+  wrap.innerHTML = html;
+  // Re-attach listeners
+  wrap.querySelectorAll('.tab[data-filter]').forEach(t => {
+    t.addEventListener('click', () => {
+      wrap.querySelectorAll('.tab[data-filter]').forEach(x => x.classList.remove('active'));
+      t.classList.add('active');
+      renderScanner();
+    });
+  });
+}
+
+function renderScanner(){
+  const body = document.getElementById('scannerBody');
+  const currentFilter = document.querySelector('.tab[data-filter].active')?.dataset.filter || 'all';
+  const search = (document.getElementById('globalSearch').value||'').toLowerCase();
+
+  let list = opportunities.slice();
+  if(currentFilter!=='all') list = list.filter(o=>o.pair.net===currentFilter);
+  if(search) list = list.filter(o => 
+    o.pair.sym.toLowerCase().includes(search) || 
+    o.cex.name.toLowerCase().includes(search) ||
+    o.dex.name.toLowerCase().includes(search)
+  );
+
+  body.innerHTML = list.slice(0,50).map(o=>{
+    const netTag = `tag-${o.pair.net}`;
+    const netName = o.pair.net;
+    const spreadClass = o.netSpread>=5 ? 'profit-pos' : o.netSpread>=2 ? 'profit-pos' : 'profit-warn';
+    const directionHtml = o.direction==='CEX→DEX'
+      ? `<span class="route-arrow"><span class="tag ${o.cex.tag}">${o.cex.name}</span><span class="arr">→</span><span class="tag ${netTag}">${o.dex.name}</span></span>`
+      : `<span class="route-arrow"><span class="tag ${netTag}">${o.dex.name}</span><span class="arr">→</span><span class="tag ${o.cex.tag}">${o.cex.name}</span></span>`;
+    const cexDisplayPrice = o.direction==='CEX→DEX' ? o.buyEff.price : o.sellEff.price;
+    const dexDisplayPrice = o.direction==='CEX→DEX' ? o.sellEff.price : o.buyEff.price;
+    const age = Date.now() - o.timestamp;
+    const ageCls = ageClass(age);
+    return `
+    <tr data-id="${o.id}">
+      <td>
+        <div class="font-display font-bold">${o.pair.sym}/${o.pair.base}</div>
+        <div class="text-[10px] text-[var(--ink-soft)]">${o.pair.full}</div>
+      </td>
+      <td class="hide-on-xs"><span class="tag ${netTag}">${netName}</span></td>
+      <td class="hide-on-xs"><span class="tag ${o.cex.tag}">${o.cex.name}</span></td>
+      <td class="hide-on-xs"><span class="tag ${netTag}">${o.dex.name}</span></td>
+      <td class="text-right font-display font-semibold">${fmtPrice(cexDisplayPrice)} <span class="text-[9px] text-[var(--ink-soft)]">LMT</span></td>
+      <td class="text-right font-display font-semibold">${fmtPrice(dexDisplayPrice)} <span class="text-[9px] text-[var(--ink-soft)]">MKT</span></td>
+      <td>
+        <div class="${spreadClass} font-display font-bold text-[14px]">${o.netSpread.toFixed(2)}%</div>
+        <div class="spread-bar mt-1"><div class="fill" style="width:${Math.min(100,o.netSpread*10)}%"></div></div>
+      </td>
+      <td class="hide-on-xs">${directionHtml}</td>
+      <td class="hide-on-xs text-center">
+        <span title="Депозит: ${o.depositOpen?'открыт':'закрыт'}" class="io-dot ${o.depositOpen?'io-open':'io-closed'}"></span>
+        <span title="Вывод: ${o.withdrawOpen?'открыт':'закрыт'}" class="io-dot ${o.withdrawOpen?'io-open':'io-closed'}"></span>
+      </td>
+      <td><span class="age-chip ${ageCls}">${fmtAge(age)}</span></td>
+      <td class="text-right font-display">$${Math.round(o.volume24h).toLocaleString()}</td>
+      <td class="text-right">
+        <button class="btn view-btn" data-id="${o.id}" style="padding:6px 10px;font-size:11px">Детали</button>
+      </td>
+    </tr>`;
+  }).join('');
+
+  document.getElementById('metricOpps').textContent = list.length;
+  const avg = list.length ? list.reduce((s,o)=>s+o.netSpread,0)/list.length : 0;
+  const best = list.length ? Math.max(...list.map(o=>o.netSpread)) : 0;
+  const totalVol = list.reduce((s,o)=>s+o.volume24h,0);
+  document.getElementById('metricSpread').textContent = avg.toFixed(2)+'%';
+  document.getElementById('metricBest').textContent = best.toFixed(2)+'%';
+  document.getElementById('metricVol').textContent = totalVol >= 1000000 ? '$'+(totalVol/1000000).toFixed(2)+'M' : '$'+Math.round(totalVol).toLocaleString();
+  document.getElementById('pairsCount').textContent = PAIRS_POOL.filter(p=>!settings.blacklist.has(p.sym.toUpperCase())).length + ' / ' + PAIRS_POOL.length;
+
+  updateSortIndicators();
+
+  body.querySelectorAll('.view-btn').forEach(b=>{
+    b.addEventListener('click', e=>{e.stopPropagation(); openDetail(b.dataset.id)});
+  });
+  body.querySelectorAll('tr[data-id]').forEach(tr=>{
+    tr.addEventListener('click', ()=>openDetail(tr.dataset.id));
+  });
+}
+
+function openDetail(id){
+  const o = opportunities.find(x=>x.id===id);
+  if(!o) return;
+  const netTag = `tag-${o.pair.net}`;
+  const cexPrice = o.direction==='CEX→DEX' ? o.buyEff.price : o.sellEff.price;
+  const dexPrice = o.direction==='CEX→DEX' ? o.sellEff.price : o.buyEff.price;
+  const cexSide = o.direction==='CEX→DEX' ? 'buy' : 'sell';
+  const dexSide = o.direction==='CEX→DEX' ? 'sell' : 'buy';
+  const age = Date.now() - o.timestamp;
+  const ageCls = ageClass(age);
+
+  const cexUrl = o.cex.url ? o.cex.url(o.pair.sym, o.pair.base) : '#';
+  const dexUrl = o.dex.url ? o.dex.url(o.pair.sym, o.pair.base) : '#';
+
+  const html = `
+    <div class="flex items-start justify-between mb-5 flex-wrap gap-3">
+      <div>
+        <div class="flex items-center gap-3 mb-2 flex-wrap">
+          <span class="font-display text-[24px] md:text-[28px] font-bold">${o.pair.full}</span>
+          <span class="tag ${netTag}">${o.pair.net}</span>
+          <span class="age-chip ${ageCls}">⏱ ${fmtAge(age)}</span>
+          <span class="badge-live"><span class="dot"></span>LIVE</span>
+        </div>
+        <div class="text-[12px] text-[var(--ink-soft)]">Обнаружено ${new Date(o.timestamp).toLocaleTimeString()} · Маршрут ${o.direction}</div>
+      </div>
+      <button class="btn" onclick="document.getElementById('modal').classList.remove('open')">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+
+    <div class="modal-stats-grid grid gap-3 mb-5" style="grid-template-columns:repeat(3,1fr)">
+      <div class="glass-chip p-4">
+        <div class="sec-label mb-1">Спред (брутто)</div>
+        <div class="font-display text-[20px] md:text-[22px] font-bold profit-pos">${o.grossSpread.toFixed(2)}%</div>
+      </div>
+      <div class="glass-chip p-4">
+        <div class="sec-label mb-1">Спред (нетто)</div>
+        <div class="font-display text-[20px] md:text-[22px] font-bold profit-pos">${o.netSpread.toFixed(2)}%</div>
+      </div>
+      <div class="glass-chip p-4">
+        <div class="sec-label mb-1">Объём 24h</div>
+        <div class="font-display text-[20px] md:text-[22px] font-bold">$${Math.round(o.volume24h/1000)}k</div>
+      </div>
+    </div>
+
+    <div class="flex gap-3 mb-5 p-4 glass-chip">
+      <div class="flex-1">
+        <div class="sec-label mb-2">Статус ввода/вывода на ${o.cex.name}</div>
+        <div class="flex items-center gap-4 text-[13px]">
+          <div><span class="io-dot ${o.depositOpen?'io-open':'io-closed'}"></span>Депозит: <b>${o.depositOpen?'открыт':'закрыт'}</b></div>
+          <div><span class="io-dot ${o.withdrawOpen?'io-open':'io-closed'}"></span>Вывод: <b>${o.withdrawOpen?'открыт':'закрыт'}</b></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="view-detail-grid grid gap-4 mb-5" style="grid-template-columns:1fr 1fr">
+      <div class="glass p-4">
+        <div class="flex items-center justify-between mb-3 flex-wrap gap-2">
+          <div>
+            <div class="sec-label mb-1">CEX · ЛИМИТ ${cexSide==='buy'?'BUY':'SELL'}</div>
+            <div class="font-display text-[15px] md:text-[16px] font-bold flex items-center gap-2 flex-wrap">${o.cex.name} <span class="tag ${o.cex.tag}">${o.cex.name}</span></div>
+          </div>
+          <div class="text-right">
+            <div class="sec-label mb-1">Исполнение по</div>
+            <div class="font-display text-[15px] md:text-[16px] font-bold profit-pos">${fmtPrice(cexPrice)}</div>
+          </div>
+        </div>
+        <div class="text-[10px] text-[var(--ink-soft)] mb-2 flex justify-between"><span>PRICE</span><span>SIZE</span><span>USD</span></div>
+        ${renderOrderbookHtml(o.cexBook, 7, 'cex', cexSide)}
+      </div>
+      <div class="glass p-4">
+        <div class="flex items-center justify-between mb-3 flex-wrap gap-2">
+          <div>
+            <div class="sec-label mb-1">DEX · МАРКЕТ ${dexSide==='buy'?'BUY':'SELL'}</div>
+            <div class="font-display text-[15px] md:text-[16px] font-bold flex items-center gap-2 flex-wrap">${o.dex.name} <span class="tag ${netTag}">${o.pair.net}</span></div>
+          </div>
+          <div class="text-right">
+            <div class="sec-label mb-1">Исполнение по</div>
+            <div class="font-display text-[15px] md:text-[16px] font-bold profit-pos">${fmtPrice(dexPrice)}</div>
+          </div>
+        </div>
+        <div class="text-[10px] text-[var(--ink-soft)] mb-2 flex justify-between"><span>PRICE</span><span>SIZE</span><span>USD</span></div>
+        ${renderOrderbookHtml(o.dexBook, 7, 'dex', dexSide)}
+      </div>
+    </div>
+
+    <div class="glass p-4 mb-5">
+      <div class="sec-label mb-2">Детальный расчёт цен</div>
+      <div class="text-[12px] text-[var(--ink-soft)] leading-relaxed">
+        <div class="mb-2">
+          <b class="profit-pos">CEX ${o.cex.name}</b> — ставим <b>лимитный ордер</b> на ${cexSide==='buy'?'покупку':'продажу'}. 
+          Исполнение произойдёт по цене <b>${fmtPrice(cexPrice)}</b> — это цена первого уровня в стакане ${cexSide==='buy'?'покупок (зелёный, bids)':'продаж (красный, asks)'}, 
+          размер ордера на котором ≥ <b>${settings.minOrderUsd} USDT</b>. 
+          ${o.buyEff.isLimit && o.buyEff.skippedLevels>0 ? `Пропущено <span class="profit-warn font-bold">${o.buyEff.skippedLevels}</span> мелких ордеров.` : ''}
+          ${o.sellEff.isLimit && o.sellEff.skippedLevels>0 ? `Пропущено <span class="profit-warn font-bold">${o.sellEff.skippedLevels}</span> мелких ордеров.` : ''}
+        </div>
+        <div>
+          <b style="color:var(--accent-2)">DEX ${o.dex.name}</b> — исполняем <b>маркет-ордер</b> на ${dexSide==='buy'?'покупку':'продажу'}. 
+          Берём цену ${dexSide==='buy'?'из стакана продажи (asks) — съедаем ликвидность':'из стакана покупки (bids) — продаём в ликвидность'}.
+          Цена: <b>${fmtPrice(dexPrice)}</b>.
+        </div>
+      </div>
+    </div>
+
+    <div class="flex items-center gap-3 justify-end flex-wrap">
+      <button class="btn" onclick="document.getElementById('modal').classList.remove('open')">Закрыть</button>
+      <button class="btn" id="copyRouteBtn">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+        Копировать
+      </button>
+      <a href="${cexUrl}" target="_blank" rel="noopener" class="btn btn-primary">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6M15 3h6v6M10 14L21 3"/></svg>
+        Перейти на ${o.cex.name}
+      </a>
+      <a href="${dexUrl}" target="_blank" rel="noopener" class="btn btn-secondary">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6M15 3h6v6M10 14L21 3"/></svg>
+        Перейти на ${o.dex.name}
+      </a>
+    </div>
+  `;
+  document.getElementById('modalContent').innerHTML = html;
+  document.getElementById('modal').classList.add('open');
+  document.getElementById('copyRouteBtn').addEventListener('click', ()=>{
+    const txt = `${o.pair.full} | ${o.direction} | CEX ${o.cex.name} ${cexSide} @ ${fmtPrice(cexPrice)} (LMT) → DEX ${o.dex.name} ${dexSide} @ ${fmtPrice(dexPrice)} (MKT) | Спред ${o.netSpread.toFixed(2)}% | URL CEX: ${cexUrl} | URL DEX: ${dexUrl}`;
+    navigator.clipboard?.writeText(txt);
+    toast('Маршрут скопирован','#00d4aa');
+  });
+}
+
+function renderOrderbookHtml(book, levels=6, venue='cex', activeSide='buy'){
+  const asks = book.asks.slice(0,levels).reverse();
+  const bids = book.bids.slice(0,levels);
+  const maxSize = Math.max(...asks.map(a=>a.size), ...bids.map(b=>b.size));
+  const fmtUsd = v => v>=1000 ? (v/1000).toFixed(1)+'k' : v.toFixed(0);
+  const meetsMin = (lvl) => (lvl.price*lvl.size) >= settings.minOrderUsd;
+  let effectivePriceLvl = null;
+  const relevantLevels = (venue==='cex' && activeSide==='buy') ? book.bids 
+                       : (venue==='cex' && activeSide==='sell') ? book.asks
+                       : activeSide==='buy' ? book.asks : book.bids;
+  for(const lvl of relevantLevels){
+    if(meetsMin(lvl)){ effectivePriceLvl = lvl.price; break; }
+  }
+  let html = '';
+  asks.forEach(a=>{
+    const pct = (a.size/maxSize)*100;
+    const isEligible = meetsMin(a);
+    const isEffective = effectivePriceLvl !== null && Math.abs(a.price - effectivePriceLvl) < 0.0000000001;
+    const dim = isEligible ? '' : 'opacity-40';
+    const ring = isEffective ? 'ring-1 ring-[#00d4aa] ring-offset-0' : '';
+    html += `<div class="ob-row ask ${dim} ${ring}">
+      <div class="bar" style="width:${pct}%"></div>
+      <span class="cell profit-neg">${fmtPriceBook(a.price)} ${isEffective?'<span class="text-[9px] text-[#00d4aa]">●</span>':''}</span>
+      <span class="cell text-[var(--ink-soft)]">${a.size.toFixed(1)}</span>
+      <span class="cell text-[var(--ink-soft)] text-right">${fmtUsd(a.price*a.size)}</span>
+    </div>`;
+  });
+  const mid = (asks[asks.length-1].price + bids[0].price)/2;
+  html += `<div class="text-center my-2 font-display font-bold text-[13px]">${fmtPriceBook(mid)} <span class="text-[10px] text-[var(--ink-soft)]">mid</span></div>`;
+  bids.forEach(b=>{
+    const pct = (b.size/maxSize)*100;
+    const isEligible = meetsMin(b);
+    const isEffective = effectivePriceLvl !== null && Math.abs(b.price - effectivePriceLvl) < 0.0000000001;
+    const dim = isEligible ? '' : 'opacity-40';
+    const ring = isEffective ? 'ring-1 ring-[#00d4aa] ring-offset-0' : '';
+    html += `<div class="ob-row bid ${dim} ${ring}">
+      <div class="bar" style="width:${pct}%"></div>
+      <span class="cell profit-pos">${fmtPriceBook(b.price)} ${isEffective?'<span class="text-[9px] text-[#00d4aa]">●</span>':''}</span>
+      <span class="cell text-[var(--ink-soft)]">${b.size.toFixed(1)}</span>
+      <span class="cell text-[var(--ink-soft)] text-right">${fmtUsd(b.price*b.size)}</span>
+    </div>`;
+  });
+  return html;
+}
+
+function renderOrderbookView(pairKey){
+  const pair = PAIRS_POOL.find(p=>p.sym===pairKey) || PAIRS_POOL[0];
+  const cex = CEX.find(c=>c.on) || CEX[0];
+  const dex = DEX.find(d=>d.on && d.net===pair.net) || DEX.find(d=>d.net===pair.net) || DEX[0];
+  const cexBook = genOrderbook(pair.cexPrice);
+  const dexBook = genOrderbook(pair.dexPrice, 8, 0.004);
+  const netTag = `tag-${pair.net}`;
+
+  document.getElementById('obCexName').textContent = cex.name;
+  document.getElementById('obCexTag').textContent = cex.name;
+  document.getElementById('obCexTag').className = 'tag '+cex.tag;
+  document.getElementById('obDexName').textContent = dex.name;
+  const obDexTagEl = document.querySelector('#obDexName + .tag') || document.getElementById('obCexTag').cloneNode();
+  if(obDexTagEl){
+    obDexTagEl.textContent = pair.net;
+    obDexTagEl.className = 'tag '+netTag;
+  }
+  
+  const buyCLimit = effectivePrice(cexBook,'buy',settings.minOrderUsd, true);
+  const sellCLimit = effectivePrice(cexBook,'sell',settings.minOrderUsd, true);
+  const buyDMarket = effectivePrice(dexBook,'buy',settings.minOrderUsd, false);
+  const sellDMarket = effectivePrice(dexBook,'sell',settings.minOrderUsd, false);
+
+  document.getElementById('obCexPrice').textContent = fmtPrice((buyCLimit.price+sellCLimit.price)/2);
+  document.getElementById('obDexPrice').textContent = fmtPrice((buyDMarket.price+sellDMarket.price)/2);
+  document.getElementById('obCexSpread').textContent = (((sellCLimit.price-buyCLimit.price)/buyCLimit.price)*100).toFixed(3)+'%';
+  document.getElementById('obDexSpread').textContent = (((buyDMarket.price-sellDMarket.price)/sellDMarket.price)*100).toFixed(3)+'%';
+
+  document.getElementById('obCexAsks').innerHTML = renderOrderbookHtml({asks:cexBook.asks,bids:cexBook.bids}, 8, 'cex', 'buy');
+  document.getElementById('obCexBids').innerHTML = '';
+  document.getElementById('obDexAsks').innerHTML = renderOrderbookHtml({asks:dexBook.asks,bids:dexBook.bids}, 8, 'dex', 'buy');
+  document.getElementById('obDexBids').innerHTML = '';
+
+  document.getElementById('obCalc').innerHTML = `
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div>
+        <b class="profit-pos">CEX ${cex.name} (ЛИМИТ)</b><br>
+        Лимитный BUY: <b>${fmtPrice(buyCLimit.price)}</b> — из зелёного стакана (bids), ордер ${(buyCLimit.usd).toFixed(0)} USDT. Пропущено ${buyCLimit.skippedLevels} мелких уровней.<br>
+        Лимитный SELL: <b>${fmtPrice(sellCLimit.price)}</b> — из красного стакана (asks), ордер ${(sellCLimit.usd).toFixed(0)} USDT. Пропущено ${sellCLimit.skippedLevels} мелких уровней.
+      </div>
+      <div>
+        <b style="color:var(--accent-2)">DEX ${dex.name} (МАРКЕТ)</b><br>
+        Маркет BUY: <b>${fmtPrice(buyDMarket.price)}</b> — съедает asks, ордер ${(buyDMarket.usd).toFixed(0)} USDT. Пропущено ${buyDMarket.skippedLevels}.<br>
+        Маркет SELL: <b>${fmtPrice(sellDMarket.price)}</b> — продаёт в bids, ордер ${(sellDMarket.usd).toFixed(0)} USDT. Пропущено ${sellDMarket.skippedLevels}.
+      </div>
+    </div>
+    <div class="mt-3 pt-3 border-t border-[var(--border)] text-[11px] text-[var(--ink-soft)]">
+      Ордеры размером &lt; ${settings.minOrderUsd} USDT подсвечены прозрачным и не учитываются при расчёте фактической цены.
+    </div>
+  `;
+}
+
+function renderRoutes(){
+  const list = opportunities.slice(0,12);
+  document.getElementById('routesList').innerHTML = list.map(o=>{
+    const netTag = `tag-${o.pair.net}`;
+    const gas = o.pair.net==='SOL' ? settings.gasSol : settings.gasBase;
+    const cexUrl = o.cex.url ? o.cex.url(o.pair.sym, o.pair.base) : '#';
+    const dexUrl = o.dex.url ? o.dex.url(o.pair.sym, o.pair.base) : '#';
+    const steps = o.direction==='CEX→DEX' 
+      ? [
+          {n:'1. Лимит BUY на CEX', d:`${o.cex.name} · ${fmtPrice(o.buyEff.price)} (bids) · ${(o.buyEff.usd).toFixed(0)} USDT`},
+          {n:'2. Вывод на кошелёк', d:`Комиссия ${settings.cexWd} USDT · 1–5 мин`},
+          {n:'3. Маркет SELL на DEX', d:`${o.dex.name} · ${fmtPrice(o.sellEff.price)} (bids) · slippage ≤${settings.maxSlippage}%`},
+          {n:'4. Итог', d:`Gas ≈ ${gas} USDT · Спред ${o.netSpread.toFixed(2)}%`}
+        ]
+      : [
+          {n:'1. Маркет BUY на DEX', d:`${o.dex.name} · ${fmtPrice(o.buyEff.price)} (asks) · slippage ≤${settings.maxSlippage}%`},
+          {n:'2. Bridge на CEX', d:`Перевод токена · комиссия ${settings.bridgeFee}%`},
+          {n:'3. Лимит SELL на CEX', d:`${o.cex.name} · ${fmtPrice(o.sellEff.price)} (asks) · taker ${settings.cexFee}%`},
+          {n:'4. Итог', d:`Gas ≈ ${gas} USDT · Спред ${o.netSpread.toFixed(2)}%`}
+        ];
+    return `
+    <div class="glass p-5">
+      <div class="flex items-center justify-between mb-4 flex-wrap gap-3">
+        <div class="flex items-center gap-3 flex-wrap">
+          <span class="font-display text-[18px] font-bold">${o.pair.full}</span>
+          <span class="tag ${netTag}">${o.pair.net}</span>
+          <span class="route-arrow hide-on-xs">
+            <span class="tag ${o.direction==='CEX→DEX'?o.cex.tag:netTag}">${o.direction==='CEX→DEX'?o.cex.name:o.dex.name}</span>
+            <span class="arr">→</span>
+            <span class="tag ${o.direction==='CEX→DEX'?netTag:o.cex.tag}">${o.direction==='CEX→DEX'?o.dex.name:o.cex.name}</span>
+          </span>
+        </div>
+        <div class="flex items-center gap-2 flex-wrap">
+          <a href="${cexUrl}" target="_blank" rel="noopener" class="btn btn-primary" style="padding:8px 14px;font-size:12px">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6M15 3h6v6M10 14L21 3"/></svg>
+            ${o.cex.name}
+          </a>
+          <a href="${dexUrl}" target="_blank" rel="noopener" class="btn btn-secondary" style="padding:8px 14px;font-size:12px">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6M15 3h6v6M10 14L21 3"/></svg>
+            ${o.dex.name}
+          </a>
+        </div>
+      </div>
+      <div class="routes-steps grid gap-3" style="grid-template-columns:repeat(4,1fr)">
+        ${steps.map(s=>`<div class="glass-chip p-3"><div class="text-[11px] text-[var(--ink-soft)] mb-1">${s.n}</div><div class="text-[12px]">${s.d}</div></div>`).join('')}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function addHistory(opp){
+  history.unshift({
+    time: new Date(opp.timestamp).toLocaleTimeString(),
+    pair: opp.pair.full,
+    route: `${opp.direction} · ${opp.cex.name}⇄${opp.dex.name}`,
+    spread: opp.netSpread,
+    volume: opp.volume24h,
+    status: Math.random()>0.2 ? 'executed' : 'expired',
+  });
+  if(history.length>50) history.pop();
+  renderHistory();
+}
+function renderHistory(){
+  document.getElementById('historyBody').innerHTML = history.map(h=>{
+    const status = h.status==='executed' 
+      ? `<span class="tag profit-pos">✓ Исполнено</span>`
+      : `<span class="tag profit-warn">Истекло</span>`;
+    return `
+    <tr>
+      <td class="font-display">${h.time}</td>
+      <td class="font-display font-bold">${h.pair}</td>
+      <td class="text-[12px] text-[var(--ink-soft)] hide-on-xs">${h.route}</td>
+      <td class="font-display profit-pos font-bold">${h.spread.toFixed(2)}%</td>
+      <td class="text-right font-display">$${Math.round(h.volume).toLocaleString()}</td>
+      <td>${status}</td>
+    </tr>`;
+  }).join('') || `<tr><td colspan="6" class="text-center text-[var(--ink-soft)] py-8">История пуста</td></tr>`;
+}
+
+function renderCexList(){
+  document.getElementById('cexList').innerHTML = CEX.map(c=>`
+    <div class="flex items-center justify-between p-3 rounded-xl hover:bg-[var(--glass)] transition">
+      <div class="flex items-center gap-3">
+        <div class="w-8 h-8 rounded-lg flex items-center justify-center text-[11px] font-bold" style="background:${c.color}22;color:${c.color};border:1px solid ${c.color}44">${c.name.slice(0,2).toUpperCase()}</div>
+        <div>
+          <div class="text-[13px] font-medium">${c.name}</div>
+          <div class="text-[11px] text-[var(--ink-soft)]">Spot · USDT pairs · WS API</div>
+        </div>
+      </div>
+      <div class="toggle ${c.on?'on':''}" data-toggle="cex-${c.id}"></div>
+    </div>
+  `).join('');
+}
+function renderDexList(){
+  document.getElementById('dexList').innerHTML = DEX.map(d=>{
+    const netTag = `tag-${d.net}`;
+    return `
+    <div class="flex items-center justify-between p-3 rounded-xl hover:bg-[var(--glass)] transition">
+      <div>
+        <div class="text-[13px] font-medium flex items-center gap-2">${d.name} <span class="tag ${netTag}">${d.net}</span></div>
+        <div class="text-[11px] text-[var(--ink-soft)]">AMM pool · on-chain quotes</div>
+      </div>
+      <div class="toggle ${d.on?'on':''}" data-toggle="dex-${d.id}"></div>
+    </div>
+  `}).join('');
+}
+function renderNetList(){
+  document.getElementById('netList').innerHTML = NETS.map(n=>{
+    const netTag = `tag-${n.sym}`;
+    return `
+    <div class="flex items-center justify-between p-3 rounded-xl hover:bg-[var(--glass)] transition">
+      <div class="flex items-center gap-3">
+        <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background:${n.color}22;color:${n.color};border:1px solid ${n.color}44">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="10"/></svg>
+        </div>
+        <div>
+          <div class="text-[13px] font-medium flex items-center gap-2">${n.name} <span class="tag ${netTag}" style="font-size:10px;padding:1px 6px">${n.sym}</span></div>
+          <div class="text-[11px] text-[var(--ink-soft)]">RPC endpoints configured</div>
+        </div>
+      </div>
+      <div class="toggle ${n.on?'on':''}" data-toggle="net-${n.id}"></div>
+    </div>
+  `}).join('');
+}
+
+function renderBlacklist(){
+  const container = document.getElementById('blacklistChips');
+  if(!container) return;
+  container.innerHTML = [...settings.blacklist].map(s=>`
+    <span class="blacklist-chip">
+      ${s}
+      <span class="x" data-bl-remove="${s}">✕</span>
+    </span>
+  `).join('') || '<span class="text-[11px] text-[var(--ink-soft)]">Чёрный список пуст</span>';
+  container.querySelectorAll('[data-bl-remove]').forEach(el=>{
+    el.addEventListener('click', ()=>{
+      settings.blacklist.delete(el.dataset.blRemove);
+      renderBlacklist();
+      generateOpportunities();
+      renderScanner();
+    });
+  });
+}
+
+// Helper: update filter badges text
+function updateFilterBadges(){
+  const fltMinOrd = document.getElementById('fltMinOrd');
+  if(fltMinOrd) fltMinOrd.textContent = settings.minOrderUsd.toLocaleString();
+  const fltSpread = document.getElementById('fltSpread');
+  if(fltSpread) fltSpread.textContent = settings.minSpread.toFixed(1);
+  const fltMinVol = document.getElementById('fltMinVol');
+  if(fltMinVol) fltMinVol.textContent = settings.minVol.toLocaleString();
+  const fltMaxVol = document.getElementById('fltMaxVol');
+  if(fltMaxVol) fltMaxVol.textContent = settings.maxVol.toLocaleString();
+}
+
+let oppChart, exChart, netChart;
+function getChartColors(){
+  const isLight = document.body.classList.contains('light');
+  return {
+    grid: isLight ? 'rgba(15,23,42,0.06)' : 'rgba(255,255,255,0.04)',
+    tick: isLight ? 'rgba(15,23,42,0.55)' : 'rgba(255,255,255,0.4)',
+    tick2: isLight ? 'rgba(15,23,42,0.65)' : 'rgba(255,255,255,0.5)',
+    legend: isLight ? '#0f172a' : '#e8e8f0',
+    doughnutBorder: isLight ? '#f4f5f9' : '#0a0a14',
+    accent: isLight ? '#00a884' : '#00d4aa',
+    accent2: isLight ? '#6d4bff' : '#7c5cff',
+  };
+}
+function renderDashboard(){
+  const c = getChartColors();
+  const ctx = document.getElementById('oppChart').getContext('2d');
+  if(oppChart) oppChart.destroy();
+  const labels = Array.from({length:24},(_,i)=>`${i}:00`);
+  const data = labels.map(()=>Math.floor(8 + Math.random()*30));
+  oppChart = new Chart(ctx, {
+    type:'line',
+    data:{labels, datasets:[{
+      data, borderColor:c.accent, borderWidth:2, tension:.4, fill:true,
+      backgroundColor:(ctx)=>{const g=ctx.chart.ctx.createLinearGradient(0,0,0,300);g.addColorStop(0,c.accent+'4d');g.addColorStop(1,c.accent+'00');return g;},
+      pointRadius:0, pointHoverRadius:5, pointHoverBackgroundColor:c.accent,
+    }]},
+    options:{responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}},
+      scales:{x:{grid:{color:c.grid},ticks:{color:c.tick,font:{family:'Space Grotesk',size:10}}},
+              y:{grid:{color:c.grid},ticks:{color:c.tick,font:{family:'Space Grotesk',size:10}}}}}
+  });
+
+  const ctx2 = document.getElementById('exChart').getContext('2d');
+  if(exChart) exChart.destroy();
+  const activeCex = CEX.filter(c=>c.on);
+  exChart = new Chart(ctx2, {
+    type:'doughnut',
+    data:{
+      labels:activeCex.map(c=>c.name),
+      datasets:[{data:activeCex.map(()=>Math.floor(10+Math.random()*40)), 
+        backgroundColor:activeCex.map(c=>c.color), 
+        borderColor:c.doughnutBorder, borderWidth:3}]
+    },
+    options:{responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{position:'right',labels:{color:c.legend,font:{family:'Space Grotesk',size:10},padding:8,usePointStyle:true,boxWidth:8}}},
+      cutout:'65%'}
+  });
+
+  const ctx3 = document.getElementById('netChart').getContext('2d');
+  if(netChart) netChart.destroy();
+  const activeNets = NETS.filter(n=>n.on).slice(0,6);
+  netChart = new Chart(ctx3, {
+    type:'bar',
+    data:{
+      labels:activeNets.map(n=>n.sym),
+      datasets:[
+        {label:'Возможности', data:activeNets.map(()=>Math.floor(10+Math.random()*40)), backgroundColor:c.accent2+'b3', borderRadius:6},
+        {label:'Volume ($k)', data:activeNets.map(()=>Math.floor(100+Math.random()*500)), backgroundColor:c.accent+'b3', borderRadius:6},
+      ]
+    },
+    options:{responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{labels:{color:c.legend,font:{family:'Space Grotesk',size:10},usePointStyle:true,boxWidth:8,padding:8}}},
+      scales:{x:{grid:{display:false},ticks:{color:c.tick2,font:{family:'Space Grotesk',size:10}}},
+              y:{grid:{color:c.grid},ticks:{color:c.tick,font:{family:'Space Grotesk',size:10}}}}}
+  });
+
+  const top = opportunities.slice(0,6);
+  document.getElementById('topPairsList').innerHTML = top.map(o=>`
+    <div class="flex items-center justify-between p-3 rounded-xl hover:bg-[var(--glass)] transition cursor-pointer">
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 rounded-lg flex items-center justify-center font-display font-bold text-[11px]" style="background:linear-gradient(135deg,rgba(124,92,255,0.3),rgba(0,212,170,0.2));border:1px solid rgba(124,92,255,0.3)">${o.pair.sym.slice(0,3)}</div>
+        <div>
+          <div class="font-display font-bold text-[13px]">${o.pair.full}</div>
+          <div class="text-[10px] text-[var(--ink-soft)]">${o.cex.name} ⇄ ${o.dex.name}</div>
+        </div>
+      </div>
+      <div class="text-right">
+        <div class="font-display font-bold profit-pos">${o.netSpread.toFixed(2)}%</div>
+        <div class="text-[10px] text-[var(--ink-soft)]">$${Math.round(o.volume24h/1000)}k</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function renderRisk(){
+  const items = [
+    {ok:true, t:'Ликвидность на DEX', d:'Глубина пула ≥ 50k USDT в диапазоне ±1%'},
+    {ok:true, t:'Размер ордера в стакане CEX', d:`Выбранный уровень ≥ ${settings.minOrderUsd} USDT`},
+    {ok:true, t:'Slippage оценка', d:`Ожидаемый slippage ≤ ${settings.maxSlippage}%`},
+    {ok:true, t:'Gas достаточен', d:'Баланс кошелька покрывает gas + buffer 20%'},
+    {ok:true, t:'Время блока сети', d:'Solana ~400ms · Base ~2s — в пределах допуска'},
+    {ok:!settings.onlyOpenIO, t:'Мост между сетями', d:'Требуется если актив не листингован на обеих сторонах'},
+    {ok:true, t:'Волатильность пары', d:'Не превышает порог в 5% за 5 минут'},
+    {ok:true, t:'Комиссии учтены', d:`CEX ${settings.cexFee}% + DEX ${settings.dexFee}% + bridge ${settings.bridgeFee}%`},
+  ];
+  document.getElementById('riskChecklist').innerHTML = items.map(i=>`
+    <div class="flex items-start gap-3 p-3 rounded-xl ${i.ok?'bg-green-500/5':'bg-yellow-500/5'} border ${i.ok?'border-green-500/15':'border-yellow-500/15'}">
+      <div class="w-6 h-6 rounded-full flex items-center justify-center shrink-0 ${i.ok?'bg-green-500/20 text-green-400':'bg-yellow-500/20 text-yellow-400'}">
+        ${i.ok?'<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>':'<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M12 9v4M12 17h.01"/></svg>'}
+      </div>
+      <div><div class="font-medium text-[13px]">${i.t}</div><div class="text-[11px] text-[var(--ink-soft)]">${i.d}</div></div>
+    </div>
+  `).join('');
+}
+
+document.querySelectorAll('.nav-item[data-view]').forEach(el=>{
+  el.addEventListener('click',()=>{
+    document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+    el.classList.add('active');
+    const v = el.dataset.view;
+    document.querySelectorAll('.view').forEach(x=>x.classList.remove('active'));
+    document.querySelector(`.view[data-view="${v}"]`).classList.add('active');
+    if(v==='dashboard') renderDashboard();
+    if(v==='orderbooks') renderOrderbookView(document.getElementById('obPairSelect').value || 'SOL');
+    if(v==='routes') renderRoutes();
+    if(v==='risk') renderRisk();
+    if(window.innerWidth < 769) closeSidebar();
+  });
+});
+
+document.querySelectorAll('th.sortable').forEach(th=>{
+  th.addEventListener('click', ()=>{
+    const field = th.dataset.sort;
+    if(sortField === field){ sortDir = sortDir === 'desc' ? 'asc' : 'desc'; }
+    else { sortField = field; sortDir = 'desc'; }
+    applySorting();
+    renderScanner();
+  });
+});
+
+const bindings = [
+  ['rngMinVol','lblMinVol','minVol', v=>`${Number(v).toLocaleString()} USDT`],
+  ['rngMaxVol','lblMaxVol','maxVol', v=>`${Number(v).toLocaleString()} USDT`],
+  ['rngSpread','lblSpread','minSpread', v=>`${Number(v).toFixed(1)}%`],
+  ['rngMinOrd','lblMinOrd','minOrderUsd', v=>`${Number(v).toLocaleString()} USDT`],
+  ['rngSlip','lblSlip','maxSlippage', v=>`${Number(v).toFixed(1)}%`],
+  ['rngRefresh','lblRefresh','refreshInterval', v=>`${Number(v)} сек`],
+];
+bindings.forEach(([rid,lid,key,fmt])=>{
+  const r = document.getElementById(rid);
+  const l = document.getElementById(lid);
+  if(!r) return;
+  r.addEventListener('input',()=>{
+    settings[key] = Number(r.value);
+    l.textContent = fmt(r.value);
+    // Always sync filter badges
+    updateFilterBadges();
+    if(key === 'refreshInterval'){
+      document.getElementById('engineIntervalLabel').textContent = settings.refreshInterval+'с';
+      if(engineRunning){
+        clearInterval(engineInterval);
+        engineInterval = setInterval(engineTick, settings.refreshInterval*1000);
+      }
+    }
+  });
+  r.addEventListener('change', ()=>{
+    generateOpportunities();
+    renderScanner();
+    updateFilterBadges();
+  });
+});
+
+document.getElementById('addBlacklistBtn')?.addEventListener('click', ()=>{
+  const input = document.getElementById('blacklistInput');
+  const vals = input.value.split(/[,\s]+/).map(s=>s.trim().toUpperCase()).filter(Boolean);
+  vals.forEach(v=>settings.blacklist.add(v));
+  input.value = '';
+  renderBlacklist();
+  generateOpportunities();
+  renderScanner();
+  if(vals.length) toast(`Добавлено: ${vals.join(', ')}`,'#ff4d8f');
+});
+
+document.addEventListener('click', e=>{
+  const t = e.target.closest('[data-toggle]');
+  if(!t) return;
+  t.classList.toggle('on');
+  const on = t.classList.contains('on');
+  const key = t.dataset.toggle;
+  if(key.startsWith('cex-')){
+    const cex = CEX.find(c=>c.id===key.slice(4));
+    if(cex){cex.on = on; generateOpportunities(); renderScanner();}
+  } else if(key.startsWith('dex-')){
+    const dex = DEX.find(d=>d.id===key.slice(4));
+    if(dex){dex.on = on; generateOpportunities(); renderScanner();}
+  } else if(key.startsWith('net-')){
+    const net = NETS.find(n=>n.id===key.slice(4));
+    if(net){
+      net.on = on;
+      // Rebuild filter tabs since networks changed
+      renderFilterTabs();
+      generateOpportunities();
+      renderScanner();
+    }
+  } else if(key === 'only-open-io'){
+    settings.onlyOpenIO = on;
+    document.getElementById('fltIOBadge').style.display = on ? '' : 'none';
+    generateOpportunities(); renderScanner();
+  } else if(key === 'warn-closed-io'){
+    settings.warnClosedIO = on;
+    renderScanner();
+  } else if(key === 'auto-check-io'){
+    settings.autoCheckIO = on;
+  }
+});
+
+function populateObSelect(){
+  const sel = document.getElementById('obPairSelect');
+  sel.innerHTML = PAIRS_POOL.map(p=>`<option value="${p.sym}">${p.full} (${p.net})</option>`).join('');
+  sel.addEventListener('change', ()=>renderOrderbookView(sel.value));
+}
+
+document.getElementById('globalSearch').addEventListener('input', renderScanner);
+
+function doScan(){
+  generateOpportunities();
+  renderScanner();
+  toast('Сканер перезапущен','#7c5cff');
+  if(opportunities[0]) addHistory(opportunities[0]);
+}
+document.querySelectorAll('.scan-btn').forEach(btn=>{
+  btn.addEventListener('click', doScan);
+});
+
+let engineRunning = false;
+let engineInterval;
+
+function updateEngineButtonsUI(){
+  document.querySelectorAll('.start-engine-btn').forEach(btn=>{
+    const label = btn.querySelector('.engine-label');
+    const iconPlay = btn.querySelector('.engine-icon-play');
+    const iconStop = btn.querySelector('.engine-icon-stop');
+    if(engineRunning){
+      btn.classList.remove('btn-primary');
+      btn.classList.add('btn-danger');
+      if(label) label.textContent = 'Остановить';
+      if(iconPlay) iconPlay.style.display = 'none';
+      if(iconStop) iconStop.style.display = '';
+      if(!iconPlay && !iconStop){
+        const svg = btn.querySelector('svg');
+        if(svg) svg.outerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>';
+      }
+    } else {
+      btn.classList.add('btn-primary');
+      btn.classList.remove('btn-danger');
+      if(label) label.textContent = 'Запустить движок';
+      if(iconPlay) iconPlay.style.display = '';
+      if(iconStop) iconStop.style.display = 'none';
+      if(!iconPlay && !iconStop){
+        const svg = btn.querySelector('svg');
+        if(svg) svg.outerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21"/></svg>';
+      }
+    }
+  });
+}
+
+function engineTick(){
+  generateOpportunities();
+  renderScanner();
+  if(opportunities[0] && Math.random()>0.5) addHistory(opportunities[0]);
+  if(opportunities[0]?.netSpread > 5) toast(`🔥 Спред ${opportunities[0].netSpread.toFixed(2)}% на ${opportunities[0].pair.full}`,'#00d4aa');
+}
+
+function toggleEngine(){
+  engineRunning = !engineRunning;
+  if(engineRunning){
+    engineInterval = setInterval(engineTick, settings.refreshInterval*1000);
+    toast(`Движок запущен. Интервал: ${settings.refreshInterval}с`,'#00d4aa');
+  } else {
+    clearInterval(engineInterval);
+    toast('Движок остановлен','#ff4d8f');
+  }
+  updateEngineButtonsUI();
+}
+document.querySelectorAll('.start-engine-btn').forEach(btn=>{
+  btn.addEventListener('click', toggleEngine);
+});
+
+document.getElementById('exportBtn').addEventListener('click', ()=>{
+  const rows = [['Pair','Net','CEX','DEX','CEX Price','DEX Price','Spread','Volume','Age','Deposit','Withdraw']];
+  opportunities.forEach(o=>rows.push([
+    o.pair.full, o.pair.net, o.cex.name, o.dex.name, 
+    o.direction==='CEX→DEX'?o.buyEff.price:o.sellEff.price, 
+    o.direction==='CEX→DEX'?o.sellEff.price:o.buyEff.price, 
+    o.netSpread.toFixed(2)+'%', Math.round(o.volume24h),
+    fmtAge(Date.now()-o.timestamp),
+    o.depositOpen?'open':'closed', o.withdrawOpen?'open':'closed'
+  ]));
+  const csv = rows.map(r=>r.join(',')).join('\n');
+  const blob = new Blob([csv],{type:'text/csv'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = `arbitra-export-${Date.now()}.csv`; a.click();
+  toast('Экспорт готов','#00d4aa');
+});
+
+document.getElementById('exportHistBtn')?.addEventListener('click', ()=>{
+  const rows = [['Time','Pair','Route','Spread','Volume','Status']];
+  history.forEach(h=>rows.push([h.time, h.pair, h.route, h.spread.toFixed(2)+'%', Math.round(h.volume), h.status]));
+  const csv = rows.map(r=>r.join(',')).join('\n');
+  const blob = new Blob([csv],{type:'text/csv'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = `arbitra-history-${Date.now()}.csv`; a.click();
+  toast('История экспортирована','#00d4aa');
+});
+
+document.getElementById('clearHist').addEventListener('click',()=>{
+  history=[]; renderHistory(); toast('История очищена','#7c5cff');
+});
+
+document.getElementById('saveSettings').addEventListener('click',()=>{
+  toast('Настройки сохранены','#00d4aa');
+  generateOpportunities(); renderScanner();
+});
+
+document.getElementById('modal').addEventListener('click', e=>{
+  if(e.target.id==='modal') e.currentTarget.classList.remove('open');
+});
+
+function toast(msg, color='#00d4aa'){
+  const t = document.createElement('div');
+  t.className = 'toast glass-strong';
+  t.innerHTML = `<div class="w-2 h-2 rounded-full" style="background:${color};box-shadow:0 0 8px ${color}"></div><div class="flex-1">${msg}</div>`;
+  document.getElementById('toasts').appendChild(t);
+  setTimeout(()=>{t.style.opacity='0';t.style.transform='translateX(20px)';t.style.transition='.3s'},3500);
+  setTimeout(()=>t.remove(),4000);
+}
+
+document.addEventListener('keydown', e=>{
+  if((e.metaKey||e.ctrlKey) && e.key==='k'){
+    e.preventDefault();
+    document.getElementById('globalSearch').focus();
+  }
+  if(e.key==='Escape') document.getElementById('modal').classList.remove('open');
+});
+
+const themeSwitch = document.getElementById('themeSwitch');
+const themeToggle = document.getElementById('themeToggle');
+const themeLabel = document.getElementById('themeLabel');
+function applyTheme(isLight){
+  document.body.classList.toggle('light', isLight);
+  themeToggle.classList.toggle('on', isLight);
+  themeLabel.textContent = isLight ? 'Светлая' : 'Тёмная';
+  try { localStorage.setItem('arbitra-theme', isLight ? 'light' : 'dark'); } catch(e){}
+  if(document.querySelector('.view[data-view="dashboard"].active')){
+    setTimeout(renderDashboard, 50);
+  }
+}
+themeSwitch.addEventListener('click', ()=>{
+  applyTheme(!document.body.classList.contains('light'));
+});
+try {
+  const saved = localStorage.getItem('arbitra-theme');
+  if(saved === 'light') applyTheme(true);
+} catch(e){}
+
+const burgerBtn = document.getElementById('burgerBtn');
+const sidebar = document.getElementById('sidebar');
+const sidebarBackdrop = document.getElementById('sidebarBackdrop');
+function openSidebar(){sidebar.classList.add('open');sidebarBackdrop.classList.add('open')}
+function closeSidebar(){sidebar.classList.remove('open');sidebarBackdrop.classList.remove('open')}
+burgerBtn?.addEventListener('click', openSidebar);
+sidebarBackdrop?.addEventListener('click', closeSidebar);
+
+// Periodic age update
+setInterval(()=>{
+  if(document.querySelector('.view[data-view="scanner"].active')){
+    renderScanner();
+  }
+}, 5000);
+
+// ============ INIT ============
+generateOpportunities();
+renderFilterTabs();    // build network filter tabs dynamically
+renderScanner();
+renderCexList();
+renderDexList();
+renderNetList();
+renderBlacklist();
+populateObSelect();
+renderHistory();
+updateFilterBadges();  // ensure "Мин. ордер" shows correct value
+document.getElementById('engineIntervalLabel').textContent = settings.refreshInterval+'с';
+
+for(let i=0;i<8;i++){
+  if(opportunities[i]) addHistory(opportunities[i]);
+}
+
+toast('ARBITRA Terminal готов · 15 сетей · 15 CEX · 27 DEX','#00d4aa');
+</script>
+</body>
+</html>
+

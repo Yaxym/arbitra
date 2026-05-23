@@ -1,1 +1,38 @@
-
+{
+  "name": "arbitra-backend",
+  "version": "1.0.0",
+  "description": "ARBITRA CEX/DEX Arbitrage Scanner Backend",
+  "main": "dist/index.js",
+  "scripts": {
+    "dev": "nodemon --exec ts-node src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "test": "jest"
+  },
+  "dependencies": {
+    "ccxt": "^4.2.0",
+    "express": "^4.18.2",
+    "ws": "^8.16.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.0",
+    "ioredis": "^5.3.2",
+    "axios": "^1.6.0",
+    "pg": "^8.11.0",
+    "@solana/web3.js": "^1.87.0",
+    "ethers": "^5.7.2",
+    "bullmq": "^5.1.0",
+    "express-rate-limit": "^7.1.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.0",
+    "@types/node": "^20.10.0",
+    "@types/express": "^4.17.21",
+    "@types/ws": "^8.5.10",
+    "@types/cors": "^2.8.17",
+    "@types/pg": "^8.10.9",
+    "ts-node": "^10.9.2",
+    "nodemon": "^3.0.2",
+    "jest": "^29.7.0",
+    "@types/jest": "^29.5.11"
+  }
+}

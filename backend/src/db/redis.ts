@@ -9,10 +9,7 @@ class RedisClient {
   private connected: boolean = false;
   
   constructor() {
-    this.client = new Redis(config.redisUrl, {
-      maxRetriesPerRequest: 3,
-      retryDelayOnFailover: 100,
-    });
+    this.client = new Redis(config.redisUrl);
     
     this.client.on('connect', () => {
       this.connected = true;
@@ -73,8 +70,9 @@ class RedisClient {
     return await this.client.publish(channel, message);
   }
   
-  isConnected(): boolean {
-    return this.connected;
+  async connect(): Promise<void> {
+    // Redis подключается автоматически при создании клиента
+    return Promise.resolve();
   }
   
   async close(): Promise<void> {

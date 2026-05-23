@@ -19,14 +19,14 @@ const CEX_CONFIG: Record<string, any> = {
   kraken: { class: ccxt.kraken, rateLimit: 200 },
   coinbase: { class: ccxt.coinbase, rateLimit: 100 },
   bitfinex: { class: ccxt.bitfinex, rateLimit: 150 },
-  cryptodotcom: { class: ccxt.crypto, rateLimit: 100 },
+  cryptodotcom: { class: ccxt.bitvavo, rateLimit: 100 }, // Используем bitvavo как альтернативу
   bingx: { class: ccxt.bingx, rateLimit: 100 },
   xt: { class: ccxt.xt, rateLimit: 100 },
   poloniex: { class: ccxt.poloniex, rateLimit: 150 },
 };
 
 class CexConnector {
-  private exchanges: Map<string, ccxt.Exchange> = new Map();
+  private exchanges: Map<string, any> = new Map();
   private initialized: boolean = false;
 
   async init(): Promise<void> {

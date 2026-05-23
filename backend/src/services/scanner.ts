@@ -147,23 +147,17 @@ class ArbitrageScanner {
         return null;
       }
 
-      // 2. Получаем реальную цену с DEX (через квоту или пул)
-      let dexPrice = 0;
-      let dexLiquidity = dex.liquidity_usd || 0;
+      // 2. Цена DEX - берем из данных пары (liquidity/volume или последняя цена)
+      // В текущей реализации у нас нет прямого доступа к цене DEX без RPC
+      // Используем цену из БД если она есть, иначе пропускаем
+      let dexPrice = parseFloat(dex.last_price) || 0;
+      const dexLiquidity = parseFloat(dex.liquidity_usd) || 0;
+      const dexVolume = parseFloat(dex.volume_24h_usd) || 0;
       
-      // Пытаемся получить реальную цену DEX
-      try {
-        const dexQuote = await dexConnector.getQuote(dex.venue, dex.network, symbol);
-        if (dexQuote && dexQuote.price > 0) {
-          dexPrice = dexQuote.price;
-        }
-      } catch (e: any) {
-        // Если цена не получена, используем середину спреда из БД если есть
-        if (dex.last_price) {
-          dexPrice = dex.last_price;
-        } else {
-          return null; // Нет цены - нет арбитража
-        }
+      // Если цены DEX нет в БД - мы не можем рассчитать реальный спред
+      // Пропускаем такую пару
+      if (dexPrice <= 0) {
+        return null;
       }
 
       // Средняя цена CEX
@@ -198,11 +192,7 @@ class ArbitrageScanner {
       }
 
       // Объем
-      const volume = dex.volume_24h_usd || 0;
-      if (volume < this.settings.minVol) {
-        // Разрешаем малый объем если спред очень большой
-        if (netSpread < 5.0) return null;
-      }
+      if (dexVolume < this.settings.minVol && netSpread < 5.0) return null;
 
       return {
         id: `${symbol}-${cex.venue}-${dex.venue}-${Date.now()}`,
@@ -230,7 +220,7 @@ class ArbitrageScanner {
         dexBook: direction === 'CEX→DEX' ? this.createDexBook(dexPrice, dexLiquidity) : cexBook,
         grossSpread,
         netSpread,
-        volume24h: volume,
+        volume24h: dexVolume,
         timestamp: Date.now(),
         depositOpen: cex.deposit_enabled !== false,
         withdrawOpen: cex.withdraw_enabled !== false,

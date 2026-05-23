@@ -8,7 +8,7 @@ import { DatabaseError } from '../utils/errors';
 class PostgresClient {
   public pool: Pool;
   private connected: boolean = false;
-  
+
   constructor() {
     this.pool = new Pool({
       connectionString: config.databaseUrl,
@@ -16,18 +16,18 @@ class PostgresClient {
       idleTimeoutMillis: 30000,
       connectionTimeoutMillis: 2000,
     });
-    
+
     this.pool.on('connect', () => {
       this.connected = true;
       logger.success('PostgreSQL connected');
     });
-    
+
     this.pool.on('error', (err) => {
       this.connected = false;
       logger.error('PostgreSQL error:', err.message);
     });
   }
-  
+
   async query(text: string, params?: any[]): Promise<QueryResult> {
     try {
       const result = await this.pool.query(text, params);
@@ -36,7 +36,7 @@ class PostgresClient {
       throw new DatabaseError(err.message);
     }
   }
-  
+
   async init(): Promise<void> {
     // Создаем таблицу пар если не существует
     await this.query(`
@@ -56,6 +56,7 @@ class PostgresClient {
         liquidity_usd NUMERIC(20,4),
         volume_24h_usd NUMERIC(20,4),
         fee_percent NUMERIC(8,4),
+        last_price NUMERIC(30,12),
         active BOOLEAN DEFAULT TRUE,
         deposit_enabled BOOLEAN DEFAULT TRUE,
         withdraw_enabled BOOLEAN DEFAULT TRUE,
@@ -78,7 +79,7 @@ class PostgresClient {
         UNIQUE(symbol, venue)
       )
     `);
-    
+
     // Создаем таблицы если не существуют
     await this.query(`
       CREATE TABLE IF NOT EXISTS opportunities (
@@ -97,7 +98,7 @@ class PostgresClient {
         withdraw_open BOOLEAN DEFAULT TRUE
       )
     `);
-    
+
     await this.query(`
       CREATE TABLE IF NOT EXISTS executed_trades (
         id SERIAL PRIMARY KEY,
@@ -112,7 +113,7 @@ class PostgresClient {
         executed_at TIMESTAMP DEFAULT NOW()
       )
     `);
-    
+
     await this.query(`
       CREATE TABLE IF NOT EXISTS blacklist (
         symbol VARCHAR(32) PRIMARY KEY,
@@ -120,7 +121,7 @@ class PostgresClient {
         reason TEXT
       )
     `);
-    
+
     await this.query(`
       CREATE TABLE IF NOT EXISTS settings (
         key VARCHAR(64) PRIMARY KEY,
@@ -128,7 +129,7 @@ class PostgresClient {
         updated_at TIMESTAMP DEFAULT NOW()
       )
     `);
-    
+
     // Индексы для ускорения поиска
     await this.query(`
       CREATE INDEX IF NOT EXISTS idx_pairs_symbol ON pairs(symbol);
@@ -142,13 +143,13 @@ class PostgresClient {
       CREATE INDEX IF NOT EXISTS idx_opportunities_detected ON opportunities(detected_at DESC);
       CREATE INDEX IF NOT EXISTS idx_opportunities_spread ON opportunities(net_spread DESC);
     `);
-    
+
     logger.success('Database initialized');
   }
-  
+
   async saveOpportunity(opp: any): Promise<number> {
     const result = await this.query(
-      `INSERT INTO opportunities 
+      `INSERT INTO opportunities
        (pair_symbol, pair_full, pair_net, cex_id, dex_id, direction, gross_spread, net_spread, volume_24h, deposit_open, withdraw_open)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
        RETURNING id`,
@@ -168,7 +169,7 @@ class PostgresClient {
     );
     return result.rows[0].id;
   }
-  
+
   async getRecentOpportunities(limit: number = 100): Promise<any[]> {
     const result = await this.query(
       `SELECT * FROM opportunities ORDER BY detected_at DESC LIMIT $1`,
@@ -176,7 +177,7 @@ class PostgresClient {
     );
     return result.rows;
   }
-  
+
   async addToBlacklist(symbol: string, reason?: string): Promise<void> {
     await this.query(
       `INSERT INTO blacklist (symbol, reason) VALUES ($1, $2)
@@ -184,16 +185,16 @@ class PostgresClient {
       [symbol.toUpperCase(), reason || null]
     );
   }
-  
+
   async getBlacklist(): Promise<string[]> {
     const result = await this.query(`SELECT symbol FROM blacklist`);
     return result.rows.map(r => r.symbol);
   }
-  
+
   async removeFromBlacklist(symbol: string): Promise<void> {
     await this.query(`DELETE FROM blacklist WHERE symbol = $1`, [symbol.toUpperCase()]);
   }
-  
+
   async saveSettings(key: string, value: any): Promise<void> {
     await this.query(
       `INSERT INTO settings (key, value, updated_at) VALUES ($1, $2, NOW())
@@ -201,13 +202,13 @@ class PostgresClient {
       [key, JSON.stringify(value)]
     );
   }
-  
+
   async getSettings(key: string): Promise<any | null> {
     const result = await this.query(`SELECT value FROM settings WHERE key = $1`, [key]);
     if (result.rows.length === 0) return null;
     return result.rows[0].value;
   }
-  
+
   async isConnected(): Promise<boolean> {
     try {
       await this.query('SELECT 1');
@@ -216,7 +217,7 @@ class PostgresClient {
       return false;
     }
   }
-  
+
   async close(): Promise<void> {
     await this.pool.end();
   }
